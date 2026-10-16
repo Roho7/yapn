@@ -1,9 +1,8 @@
 import Testing
 @testable import DictationCore
 
-private let turbo = EngineVariant(model: .whisperTurbo, biased: false)
-private let small = EngineVariant(model: .whisperSmallEn, biased: false)
-private let parakeet = EngineVariant(model: .parakeetV2, biased: false)
+private let plain = EngineVariant(model: .parakeetV2, biased: false)
+private let biased = EngineVariant(model: .parakeetV2, biased: true)
 
 private let prompts = [
     Prompt(id: 1, category: .path, written: "open src/lib/auth.ts", tokens: ["src/lib/auth.ts"]),
@@ -29,7 +28,7 @@ private func handBuiltResults() -> RunResults {
         startedAt: .distantPast,
         hardware: "test",
         prompts: prompts,
-        runs: [EngineRun(variant: turbo, load: LoadStats(loadSeconds: 1.5, memoryDeltaBytes: 100), clips: clips)]
+        runs: [EngineRun(variant: plain, load: LoadStats(loadSeconds: 1.5, memoryDeltaBytes: 100), clips: clips)]
     )
 }
 
@@ -67,33 +66,40 @@ private func summary(_ variant: EngineVariant, lenient: Double, wer: Double = 0.
 }
 
 struct PickWinnerTests {
-    @Test func fastButInaccurateLosesToAccurateAndFastWhileAccurateButSlowIsDisqualified() {
+    @Test func accurateButSlowIsDisqualified() {
         let winner = pickWinner([
-            summary(small, lenient: 0.6, rtf: 0.02),
-            summary(turbo, lenient: 0.95, rtf: 0.12),
-            summary(parakeet, lenient: 0.9, rtf: 0.08),
+            summary(plain, lenient: 0.6, rtf: 0.02),
+            summary(biased, lenient: 0.95, rtf: 0.12),
         ])
-        #expect(winner == parakeet)
+        #expect(winner == plain)
+    }
+
+    @Test func moreAccurateWinsWhenBothAreFastEnough() {
+        let winner = pickWinner([
+            summary(plain, lenient: 0.6, rtf: 0.02),
+            summary(biased, lenient: 0.9, rtf: 0.08),
+        ])
+        #expect(winner == biased)
     }
 
     @Test func lenientTieBreaksOnLowerWER() {
         let winner = pickWinner([
-            summary(turbo, lenient: 0.9, wer: 0.10, rtf: 0.05),
-            summary(parakeet, lenient: 0.9, wer: 0.05, rtf: 0.05),
+            summary(plain, lenient: 0.9, wer: 0.10, rtf: 0.05),
+            summary(biased, lenient: 0.9, wer: 0.05, rtf: 0.05),
         ])
-        #expect(winner == parakeet)
+        #expect(winner == biased)
     }
 
     @Test func werTieBreaksOnLowerPeakMemory() {
         let winner = pickWinner([
-            summary(turbo, lenient: 0.9, wer: 0.05, rtf: 0.05, peak: 4_000),
-            summary(parakeet, lenient: 0.9, wer: 0.05, rtf: 0.05, peak: 2_000),
+            summary(plain, lenient: 0.9, wer: 0.05, rtf: 0.05, peak: 4_000),
+            summary(biased, lenient: 0.9, wer: 0.05, rtf: 0.05, peak: 2_000),
         ])
-        #expect(winner == parakeet)
+        #expect(winner == biased)
     }
 
     @Test func nilWhenNoEngineIsFastEnough() {
-        #expect(pickWinner([summary(turbo, lenient: 0.9, rtf: 0.2), summary(small, lenient: 0.8, rtf: nil)]) == nil)
+        #expect(pickWinner([summary(plain, lenient: 0.9, rtf: 0.2), summary(biased, lenient: 0.8, rtf: nil)]) == nil)
         #expect(pickWinner([]) == nil)
     }
 }

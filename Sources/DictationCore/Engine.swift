@@ -1,8 +1,6 @@
 import Foundation
 
 public enum ModelFamily: String, Codable, Sendable, CaseIterable {
-    case whisperTurbo = "whisper-turbo"
-    case whisperSmallEn = "whisper-small.en"
     case parakeetV2 = "parakeet-v2"
 }
 
@@ -48,3 +46,13 @@ public protocol TranscriptionEngine: Actor {
     func transcribe(_ samples: [Float]) async throws -> String
     func unload()
 }
+
+public enum EngineError: Error {
+    case notLoaded
+}
+
+func logEngine(_ message: String) {
+    FileHandle.standardError.write(Data("[engine] \(message)\n".utf8))
+}
+
+func fmt(_ seconds: Double) -> String { String(format: "%.2f", seconds) }
