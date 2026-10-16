@@ -1,0 +1,8 @@
+{
+  "category" : "skill",
+  "id" : 12,
+  "tokens" : [
+    "\/compact"
+  ],
+  "written" : "the context is getting long so run \/compact and keep the notes about the auth refactor"
+}

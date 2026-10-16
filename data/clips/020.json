@@ -1,0 +1,10 @@
+{
+  "category" : "identifier",
+  "id" : 20,
+  "tokens" : [
+    "userId",
+    "sessionToken",
+    "get_user_by_id"
+  ],
+  "written" : "the userId and sessionToken fields are optional but get_user_by_id assumes both exist"
+}

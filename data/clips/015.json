@@ -1,0 +1,8 @@
+{
+  "category" : "path",
+  "id" : 15,
+  "tokens" : [
+    "tests\/test_scoring.py"
+  ],
+  "written" : "add a new test file at tests\/test_scoring.py that covers the empty transcript case"
+}

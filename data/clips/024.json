@@ -1,0 +1,9 @@
+{
+  "category" : "identifier",
+  "id" : 24,
+  "tokens" : [
+    "parse_prompt_file",
+    "load_prompts"
+  ],
+  "written" : "rename parse_prompt_file to load_prompts and update every caller in the python scripts"
+}

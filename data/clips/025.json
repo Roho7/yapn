@@ -1,0 +1,10 @@
+{
+  "category" : "identifier",
+  "id" : 25,
+  "tokens" : [
+    "DictationViewModel",
+    "startRecording",
+    "isTranscribing"
+  ],
+  "written" : "add a DictationViewModel with a startRecording method and an isTranscribing property"
+}

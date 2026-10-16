@@ -1,0 +1,8 @@
+{
+  "category" : "claude-prompt",
+  "id" : 4,
+  "tokens" : [
+    "deleted_at"
+  ],
+  "written" : "write a migration that adds a deleted_at column to the users table and backfills it with null"
+}

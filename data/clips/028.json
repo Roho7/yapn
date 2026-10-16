@@ -1,0 +1,9 @@
+{
+  "category" : "flag",
+  "id" : 28,
+  "tokens" : [
+    "--verbose",
+    "--no-open"
+  ],
+  "written" : "start the dev server with --verbose and --no-open so it stops spamming the browser"
+}

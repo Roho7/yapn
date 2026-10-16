@@ -1,0 +1,5 @@
+.build/
+results/
+data/live/
+.DS_Store
+.swiftpm/

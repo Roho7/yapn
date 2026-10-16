@@ -1,0 +1,9 @@
+{
+  "category" : "identifier",
+  "id" : 21,
+  "tokens" : [
+    "max_retry_count",
+    "RetryPolicy"
+  ],
+  "written" : "change max_retry_count from three to five in the RetryPolicy class"
+}

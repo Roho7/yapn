@@ -1,0 +1,9 @@
+{
+  "category" : "claude-prompt",
+  "id" : 1,
+  "tokens" : [
+    "useAuthProvider",
+    "AuthContext"
+  ],
+  "written" : "refactor useAuthProvider so it reads the session from AuthContext instead of props, then update the tests"
+}

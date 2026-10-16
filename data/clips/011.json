@@ -1,0 +1,9 @@
+{
+  "category" : "skill",
+  "id" : 11,
+  "tokens" : [
+    "\/init",
+    "CLAUDE.md"
+  ],
+  "written" : "type \/init so Claude can write a CLAUDE.md for this repo"
+}

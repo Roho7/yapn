@@ -1,0 +1,9 @@
+{
+  "category" : "flag",
+  "id" : 31,
+  "tokens" : [
+    "--force-with-lease",
+    "--force"
+  ],
+  "written" : "push with --force-with-lease instead of --force so we do not overwrite anyone"
+}

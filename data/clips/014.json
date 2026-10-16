@@ -1,0 +1,8 @@
+{
+  "category" : "path",
+  "id" : 14,
+  "tokens" : [
+    "Sources\/DictationCore\/Scoring.swift"
+  ],
+  "written" : "the bug is in Sources\/DictationCore\/Scoring.swift on the line that counts substitutions"
+}

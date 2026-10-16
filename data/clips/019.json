@@ -1,0 +1,8 @@
+{
+  "category" : "path",
+  "id" : 19,
+  "tokens" : [
+    "scripts\/build_release.sh"
+  ],
+  "written" : "run scripts\/build_release.sh and paste the last twenty lines of output"
+}

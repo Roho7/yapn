@@ -1,0 +1,8 @@
+{
+  "category" : "skill",
+  "id" : 10,
+  "tokens" : [
+    "\/security-review"
+  ],
+  "written" : "run \/security-review on the pending changes before I open the pull request"
+}

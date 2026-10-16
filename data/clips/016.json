@@ -1,0 +1,9 @@
+{
+  "category" : "path",
+  "id" : 16,
+  "tokens" : [
+    "src\/components\/Header.tsx",
+    "src\/components\/layout\/"
+  ],
+  "written" : "move src\/components\/Header.tsx into src\/components\/layout\/ and fix the imports"
+}

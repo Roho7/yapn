@@ -1,0 +1,8 @@
+{
+  "category" : "path",
+  "id" : 13,
+  "tokens" : [
+    "src\/lib\/auth.ts"
+  ],
+  "written" : "open src\/lib\/auth.ts and check how the token refresh works"
+}

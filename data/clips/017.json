@@ -1,0 +1,9 @@
+{
+  "category" : "path",
+  "id" : 17,
+  "tokens" : [
+    "tsconfig.json",
+    "package.json"
+  ],
+  "written" : "compare tsconfig.json with package.json and see why the build ignores the paths alias"
+}

@@ -1,0 +1,8 @@
+{
+  "category" : "flag",
+  "id" : 26,
+  "tokens" : [
+    "--dry-run"
+  ],
+  "written" : "add a --dry-run flag to the deploy script so it prints the commands without running them"
+}

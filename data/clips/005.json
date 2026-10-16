@@ -1,0 +1,8 @@
+{
+  "category" : "claude-prompt",
+  "id" : 5,
+  "tokens" : [
+    "TranscriptionEngine"
+  ],
+  "written" : "explain how TranscriptionEngine is implemented and which models conform to it"
+}

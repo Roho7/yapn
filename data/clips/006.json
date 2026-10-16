@@ -1,0 +1,9 @@
+{
+  "category" : "claude-prompt",
+  "id" : 6,
+  "tokens" : [
+    "handleSubmit",
+    "onSubmitForm"
+  ],
+  "written" : "rename handleSubmit to onSubmitForm across the whole repo and fix the imports"
+}

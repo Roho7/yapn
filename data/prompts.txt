@@ -1,0 +1,48 @@
+# Dev dictation prompts. Dev tokens are wrapped in backticks in their written form.
+
+# category: claude-prompt
+refactor `useAuthProvider` so it reads the session from `AuthContext` instead of props, then update the tests
+find every place we call `fetchUserProfile` and add error handling for the network timeout
+look at the failing test in `auth.test.ts` and tell me why the mock for `getSession` is never reset
+write a migration that adds a `deleted_at` column to the users table and backfills it with null
+explain how `TranscriptionEngine` is implemented and which models conform to it
+rename `handleSubmit` to `onSubmitForm` across the whole repo and fix the imports
+
+# category: skill
+run `/code-review` on this branch and summarize the blocking issues
+use `/simplify` to clean up the changes I just made to the parser
+start with `/poteto-mode` and plan the migration before touching any files
+run `/security-review` on the pending changes before I open the pull request
+type `/init` so Claude can write a `CLAUDE.md` for this repo
+the context is getting long so run `/compact` and keep the notes about the auth refactor
+
+# category: path
+open `src/lib/auth.ts` and check how the token refresh works
+the bug is in `Sources/DictationCore/Scoring.swift` on the line that counts substitutions
+add a new test file at `tests/test_scoring.py` that covers the empty transcript case
+move `src/components/Header.tsx` into `src/components/layout/` and fix the imports
+compare `tsconfig.json` with `package.json` and see why the build ignores the paths alias
+read `app/api/users/route.ts` and tell me which middleware runs before it
+run `scripts/build_release.sh` and paste the last twenty lines of output
+
+# category: identifier
+the `userId` and `sessionToken` fields are optional but `get_user_by_id` assumes both exist
+change `max_retry_count` from three to five in the `RetryPolicy` class
+make `AuthProvider` conform to `ObservableObject` and publish `isLoggedIn`
+the `wordErrorRate` function should return zero when `referenceLength` is zero
+rename `parse_prompt_file` to `load_prompts` and update every caller in the python scripts
+add a `DictationViewModel` with a `startRecording` method and an `isTranscribing` property
+
+# category: flag
+add a `--dry-run` flag to the deploy script so it prints the commands without running them
+run the tests with `--watch` and `--coverage` turned on
+start the dev server with `--verbose` and `--no-open` so it stops spamming the browser
+build the package with `-c` release and then run the tests with `--parallel`
+show me the git log with `--oneline` and `--graph` for the last week
+push with `--force-with-lease` instead of `--force` so we do not overwrite anyone
+
+# category: prose
+I think the meeting went well but we still need to decide who owns the follow up before Friday
+can you summarize the main difference between the two approaches in a couple of sentences
+the build has been slow all week and I suspect the cache is not being shared between machines
+please write a short note thanking the team for the quick turnaround on the release

@@ -1,0 +1,10 @@
+{
+  "category" : "identifier",
+  "id" : 22,
+  "tokens" : [
+    "AuthProvider",
+    "ObservableObject",
+    "isLoggedIn"
+  ],
+  "written" : "make AuthProvider conform to ObservableObject and publish isLoggedIn"
+}

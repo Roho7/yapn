@@ -1,0 +1,8 @@
+{
+  "category" : "skill",
+  "id" : 7,
+  "tokens" : [
+    "\/code-review"
+  ],
+  "written" : "run \/code-review on this branch and summarize the blocking issues"
+}

@@ -1,0 +1,8 @@
+{
+  "category" : "skill",
+  "id" : 9,
+  "tokens" : [
+    "\/poteto-mode"
+  ],
+  "written" : "start with \/poteto-mode and plan the migration before touching any files"
+}

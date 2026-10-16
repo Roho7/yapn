@@ -1,0 +1,9 @@
+{
+  "category" : "flag",
+  "id" : 27,
+  "tokens" : [
+    "--watch",
+    "--coverage"
+  ],
+  "written" : "run the tests with --watch and --coverage turned on"
+}

@@ -1,0 +1,9 @@
+{
+  "category" : "flag",
+  "id" : 30,
+  "tokens" : [
+    "--oneline",
+    "--graph"
+  ],
+  "written" : "show me the git log with --oneline and --graph for the last week"
+}

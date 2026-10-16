@@ -1,0 +1,9 @@
+{
+  "category" : "claude-prompt",
+  "id" : 3,
+  "tokens" : [
+    "auth.test.ts",
+    "getSession"
+  ],
+  "written" : "look at the failing test in auth.test.ts and tell me why the mock for getSession is never reset"
+}

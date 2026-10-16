@@ -1,0 +1,9 @@
+{
+  "category" : "identifier",
+  "id" : 23,
+  "tokens" : [
+    "wordErrorRate",
+    "referenceLength"
+  ],
+  "written" : "the wordErrorRate function should return zero when referenceLength is zero"
+}

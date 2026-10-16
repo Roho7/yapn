@@ -1,0 +1,9 @@
+{
+  "category" : "flag",
+  "id" : 29,
+  "tokens" : [
+    "-c",
+    "--parallel"
+  ],
+  "written" : "build the package with -c release and then run the tests with --parallel"
+}
