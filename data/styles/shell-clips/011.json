@@ -1,0 +1,8 @@
+{
+  "category": "flag",
+  "id": 11,
+  "tokens": [
+    "--release"
+  ],
+  "written": "cargo build --release"
+}

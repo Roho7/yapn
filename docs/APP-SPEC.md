@@ -38,6 +38,25 @@ An optional pass on Apple's on-device model (Foundation Models, macOS 26 with Ap
 - Measure it with `bench rescore results/<ts> --cleanup`. `--cleanup-all` sends every clip to the model, with no gate. The repair set is `data/repairs.txt`. Build its clips with `scripts/make-repair-clips.sh`, then run `bench run --clips data/repair-clips --engines parakeet-v2`. The hesitation set is `data/hesitations.txt`: `scripts/make-repair-clips.sh data/hesitations.txt data/hesitation-clips`, then `bench run --clips data/hesitation-clips --engines parakeet-v2`.
 - `bench clean` takes raw transcripts on stdin, one per line, and prints what the formatter and the cleanup make of each. `--all` skips the gate.
 
+## Styles per app
+The text is written for the app it lands in. When Right Option goes down, the app reads the frontmost app's bundle id and name and, through the Accessibility grant it already has, the focused window's title. `resolveStyle` picks a style from one ordered table in `Sources/DictationCore/Style/DictationStyle.swift`; the first matching row wins.
+
+| Rule | Style |
+|---|---|
+| A terminal whose window title holds "claude" or a Claude Code spinner glyph (✳ ✶ ✻ ✽ ✢) | `claude-code` |
+| The Claude app (`com.anthropic.claudefordesktop`) | `claude-code` |
+| Any other terminal: Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm, Hyper | `shell` |
+| A browser (Safari, Chrome, Arc, Dia, Firefox, Brave, Edge) whose tab title holds "LinkedIn" | `formal` |
+| Mail | `formal` |
+| Everything else, editors with built-in terminals included | `default` |
+
+- **`default` and `claude-code`** run the pipeline above unchanged.
+- **`formal`** deletes in the rules what is safe to delete without the model: "basically", "honestly", "literally", "kind of" and "sort of" where they name no kind, "like" and "you know" at a pause (next to a comma or after a leading conjunction), and "And", "But", "So" or "Plus" opening a sentence. It capitalises and closes every sentence. Then it always sends the text to the model for the rest: repeats, restarts, "just", "really", "super". The review allows case and punctuation changes and up to two added words, and otherwise holds the default guard: code tokens verbatim, questions stay questions, half the words stay.
+- **`shell`** writes a command line: one line, no sentence punctuation, no capital on the first word. It first undoes the engine's spellings: letters said one by one join ("C D S R C" is `cd src`), a lone letter is lowercase unless "capital" comes first, known programs and subcommands lose their capitals ("NPM", "Docker Compose"), and "get" before a git subcommand is `git`. On top of the spoken symbols, "verbose flag" or "flag verbose" is `--verbose`, "dry run flag" is `--dry-run` (multi-word names only from a known list), "short flag v" is `-v`, "long flag X" is `--X`, "argument X" or "pass X" is `X`, and "with the" before a flag goes. Text holding a word the model may delete ("run", "with", "the", "message") goes to the model, which may only delete those words, add quotes, and add `-m` or `--`: "git commit with message fix login bug" becomes `git commit -m "fix login bug"`. Anything else falls back to the rule output. The pasted text never holds a newline, so pasting never runs the command.
+- The log has a `style:` line per dictation with the app, the window title and the rule that matched. The menu shows `Style: <name> (<app>)` for the frontmost app when it opens. History entries record the style and the window title.
+- Override the table per app: `defaults write dev.roho.dictation styleOverrides -dict com.apple.Terminal claude-code`. Values are `default`, `claude-code`, `shell`, `formal`. `defaults delete dev.roho.dictation styleOverrides` removes them.
+- Measure a style on stored transcripts with `bench rescore results/<ts> --cleanup --style formal` or `bench clean --style shell`. The sets are `data/styles/formal.txt` and `data/styles/shell.txt`; build their clips with `scripts/make-repair-clips.sh data/styles/formal.txt data/styles/formal-clips` and run `bench run --clips data/styles/formal-clips --engines parakeet-v2`.
+
 ## Real-voice eval set
 The recorded clips are read prompts. Real dictation has stutters, restarts and self-corrections that read prompts lack, so every change to formatting or cleanup is also measured on the user's own dictations.
 

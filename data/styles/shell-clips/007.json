@@ -1,0 +1,8 @@
+{
+  "category": "flag",
+  "id": 7,
+  "tokens": [
+    "-d"
+  ],
+  "written": "docker compose up -d"
+}

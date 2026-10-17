@@ -1,0 +1,8 @@
+{
+  "category": "flag",
+  "id": 8,
+  "tokens": [
+    "-m"
+  ],
+  "written": "git commit -m \"fix login bug\""
+}

@@ -1,0 +1,8 @@
+{
+  "category": "flag",
+  "id": 4,
+  "tokens": [
+    "--dry-run"
+  ],
+  "written": "deploy --dry-run"
+}

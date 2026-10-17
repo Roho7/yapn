@@ -1,0 +1,20 @@
+# Formal style (LinkedIn, Mail): crutches, intensifiers, hesitations and conjunctions stacked at a sentence's head go,
+# every other word stays in order, and sentences are capitalised and closed. Same format as data/repairs.txt.
+# Build: scripts/make-repair-clips.sh data/styles/formal.txt data/styles/formal-clips
+# Score: bench run --clips data/styles/formal-clips --engines parakeet-v2, then bench rescore <results> --cleanup --style formal
+# WER and exact ignore case and punctuation, so the per-clip diffs are where capitalisation shows.
+# A control has fluent text on both sides: only case and punctuation may change.
+
+# category: prose
+so um I just wanted to say congratulations on the new role ||| I wanted to say congratulations on the new role.
+and so basically we're looking for a senior designer to join the team ||| We're looking for a senior designer to join the team.
+I'm, like, super excited to announce that we raised our seed round ||| I'm super excited to announce that we raised our seed round.
+but like the main lesson here is that you have to talk to your users ||| The main lesson here is that you have to talk to your users.
+honestly this was kind of the best conference I've been to this year ||| This was the best conference I've been to this year.
+would you be open to, um, a quick chat next week ||| Would you be open to a quick chat next week?
+we, we shipped the new onboarding flow and, you know, the results are great ||| We shipped the new onboarding flow and the results are great.
+thanks for the intro Priya, I'd really love to learn more about the role ||| Thanks for the intro, Priya. I'd love to learn more about the role.
+Congratulations on the launch, the team should be proud. ||| Congratulations on the launch, the team should be proud.
+I like how you framed the problem in this post. ||| I like how you framed the problem in this post.
+We are hiring backend engineers in London and Berlin. ||| We are hiring backend engineers in London and Berlin.
+What kind of tools does your team use for planning? ||| What kind of tools does your team use for planning?

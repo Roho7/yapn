@@ -1,0 +1,9 @@
+{
+  "category": "flag",
+  "id": 10,
+  "tokens": [
+    "script.py",
+    "input.txt"
+  ],
+  "written": "python script.py input.txt"
+}

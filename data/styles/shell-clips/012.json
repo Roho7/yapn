@@ -1,0 +1,8 @@
+{
+  "category": "flag",
+  "id": 12,
+  "tokens": [
+    "src/components"
+  ],
+  "written": "cd src/components"
+}

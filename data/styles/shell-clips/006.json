@@ -1,0 +1,8 @@
+{
+  "category": "flag",
+  "id": 6,
+  "tokens": [
+    "-l"
+  ],
+  "written": "ls -l"
+}

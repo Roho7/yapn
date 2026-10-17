@@ -1,0 +1,8 @@
+{
+  "category": "flag",
+  "id": 14,
+  "tokens": [
+    "--ignore-case"
+  ],
+  "written": "grep --ignore-case todo"
+}

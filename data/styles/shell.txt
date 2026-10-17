@@ -1,0 +1,22 @@
+# Shell style (a terminal not running Claude Code): the text is a command line. Flags spoken as words become flags,
+# "with" and an article before a flag go, a spoken program with "with message" becomes -m "...", and nothing is
+# invented. Same format as data/repairs.txt.
+# Build: scripts/make-repair-clips.sh data/styles/shell.txt data/styles/shell-clips
+# Score: bench run --clips data/styles/shell-clips --engines parakeet-v2, then bench rescore <results> --cleanup --style shell
+# A control is already a command: it must come through as said.
+
+# category: flag
+git status ||| git status
+run the tests with the verbose flag ||| run the tests `--verbose`
+npm test verbose flag ||| npm test `--verbose`
+deploy with the dry run flag ||| deploy `--dry-run`
+git push force with lease flag ||| git push `--force-with-lease`
+ls short flag l ||| ls `-l`
+docker compose up dash d ||| docker compose up `-d`
+git commit with message fix login bug ||| git commit `-m` "fix login bug"
+run git log with the oneline flag ||| git log `--oneline`
+python script dot py argument input dot txt ||| python `script.py` `input.txt`
+cargo build, pass the release flag ||| cargo build `--release`
+cd src slash components ||| cd `src/components`
+npm run build ||| npm run build
+grep long flag ignore case todo ||| grep `--ignore-case` todo

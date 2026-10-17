@@ -1,0 +1,8 @@
+{
+  "category": "flag",
+  "id": 5,
+  "tokens": [
+    "--force-with-lease"
+  ],
+  "written": "git push --force-with-lease"
+}

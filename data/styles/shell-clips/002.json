@@ -1,0 +1,8 @@
+{
+  "category": "flag",
+  "id": 2,
+  "tokens": [
+    "--verbose"
+  ],
+  "written": "run the tests --verbose"
+}

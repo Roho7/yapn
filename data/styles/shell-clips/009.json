@@ -1,0 +1,8 @@
+{
+  "category": "flag",
+  "id": 9,
+  "tokens": [
+    "--oneline"
+  ],
+  "written": "git log --oneline"
+}
