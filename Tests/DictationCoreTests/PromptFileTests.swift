@@ -54,7 +54,7 @@ struct PromptFileTests {
         let prompts = try PromptFile.parse(text)
 
         #expect(prompts.count >= 30)
-        for category in PromptCategory.allCases {
+        for category in PromptCategory.allCases where category != .dictation {
             #expect(prompts.filter { $0.category == category }.count >= 4, "category \(category.rawValue)")
         }
         #expect(prompts.map(\.id) == Array(1...prompts.count))

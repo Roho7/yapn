@@ -7,6 +7,8 @@ public enum PromptCategory: String, Codable, Sendable, CaseIterable {
     case identifier
     case flag
     case prose
+    /// A real dictation from the app's history, labelled with `bench label`.
+    case dictation
 }
 
 /// One test utterance. `written` is the reference text with backticks removed;
@@ -63,18 +65,38 @@ public enum PromptFile {
             }
 
             guard let category else { throw PromptFileError.utteranceBeforeCategory(line: lineNumber) }
-            let segments = line.split(separator: "`", omittingEmptySubsequences: false).map(String.init)
-            guard segments.count % 2 == 1 else { throw PromptFileError.unbalancedBackticks(line: lineNumber) }
-            let tokens = segments.indices.filter { $0 % 2 == 1 }.map { segments[$0] }
-            guard !tokens.contains(where: \.isEmpty) else { throw PromptFileError.emptyToken(line: lineNumber) }
-
-            prompts.append(Prompt(
-                id: prompts.count + 1,
-                category: category,
-                written: segments.joined(),
-                tokens: tokens
-            ))
+            let parsed: (written: String, tokens: [String])
+            do {
+                parsed = try splitBackticks(line)
+            } catch .unbalanced {
+                throw PromptFileError.unbalancedBackticks(line: lineNumber)
+            } catch .emptyToken {
+                throw PromptFileError.emptyToken(line: lineNumber)
+            }
+            prompts.append(Prompt(id: prompts.count + 1, category: category, written: parsed.written, tokens: parsed.tokens))
         }
         return prompts
     }
+}
+
+public enum BacktickError: Error, Equatable, CustomStringConvertible {
+    case unbalanced
+    case emptyToken
+
+    public var description: String {
+        switch self {
+        case .unbalanced: "unbalanced backticks"
+        case .emptyToken: "empty backtick pair"
+        }
+    }
+}
+
+/// Reference text with its dev tokens in backticks: "run `/grill-me` now" is written "run /grill-me now"
+/// with the token "/grill-me".
+public func splitBackticks(_ text: String) throws(BacktickError) -> (written: String, tokens: [String]) {
+    let segments = text.split(separator: "`", omittingEmptySubsequences: false).map(String.init)
+    guard segments.count % 2 == 1 else { throw .unbalanced }
+    let tokens = segments.indices.filter { $0 % 2 == 1 }.map { segments[$0] }
+    guard !tokens.contains(where: \.isEmpty) else { throw .emptyToken }
+    return (segments.joined(), tokens)
 }
