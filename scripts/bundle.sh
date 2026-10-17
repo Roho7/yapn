@@ -6,6 +6,7 @@ set -eu
 cd "$(dirname "$0")/.."
 
 BUNDLE_ID=dev.roho.yapn
+VERSION=0.2.0
 APP=build/Yapn.app
 KEYCHAIN="${YAPN_KEYCHAIN:-$HOME/Library/Keychains/yapn-signing.keychain-db}"
 PASSWORD_FILE="${YAPN_KEYCHAIN_PASSWORD_FILE:-$HOME/Library/Application Support/Yapn/signing-keychain-password}"
@@ -48,8 +49,8 @@ cat > "$APP/Contents/Info.plist" <<EOF
   <key>CFBundleDisplayName</key><string>Yapn</string>
   <key>CFBundleExecutable</key><string>Yapn</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.1</string>
-  <key>CFBundleVersion</key><string>1</string>
+  <key>CFBundleShortVersionString</key><string>$VERSION</string>
+  <key>CFBundleVersion</key><string>$VERSION</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSUIElement</key><true/>
   <key>NSHighResolutionCapable</key><true/>
