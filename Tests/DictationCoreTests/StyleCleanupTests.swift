@@ -23,6 +23,13 @@ struct FormalCleanupTests {
         #expect(reviewCleanup(input: "But like, the launch went well.", output: "The launch went well.", formal: true) == nil)
     }
 
+    @Test func formalRejectsAModelThatShoutsButKeepsAcronyms() {
+        let input = "We're hiring two engineers for the platform team."
+        #expect(reviewCleanup(input: input, output: "WE'RE HIRING TWO ENGINEERS FOR THE PLATFORM TEAM.", formal: true) == .shouting)
+        #expect(reviewCleanup(input: "we're hiring for the api team", output: "We're hiring for the API team.", formal: true) == nil)
+        #expect(reviewCleanup(input: "READ THE API DOCS", output: "READ THE API DOCS.", formal: true) == nil)
+    }
+
     @Test func caseAndPunctuationChangesAreTheEdit() {
         #expect(reviewCleanup(input: "thanks maria. see you monday", output: "Thanks, Maria. See you Monday.", formal: true) == nil)
         #expect(reviewCleanup(input: "thanks maria. see you monday", output: "Thanks, Maria. See you Monday.") == .cosmeticOnly)

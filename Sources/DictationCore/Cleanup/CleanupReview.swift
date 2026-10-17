@@ -17,6 +17,8 @@ public enum CleanupRejection: Sendable, Equatable, CustomStringConvertible {
     case tooShort(input: Int, output: Int)
     /// The same words with only case or punctuation changed: not an edit the cleaner is for.
     case cosmeticOnly
+    /// The output is mostly capitals where the input was not: the model shouted.
+    case shouting
     /// A command came back on more than one line; pasted into a shell, a newline runs it.
     case multiline
     /// A command with an odd number of double quotes, which leaves the shell waiting for more.
@@ -32,6 +34,7 @@ public enum CleanupRejection: Sendable, Equatable, CustomStringConvertible {
         case .addedWords(let words): "added words: \(words.joined(separator: " "))"
         case .deletedWords(let words): "deleted words that are not a hesitation or a correction: \(words.joined(separator: " "))"
         case .tooShort(let input, let output): "kept \(output) of \(input) words"
+        case .shouting: "wrote the text in capitals"
         case .cosmeticOnly: "changed only case or punctuation"
         case .multiline: "wrote more than one line"
         case .unbalancedQuotes: "left a double quote open"
@@ -50,6 +53,8 @@ public enum CleanupRejection: Sendable, Equatable, CustomStringConvertible {
 /// added, and the deletable crutches include intensifiers ("just", "really") and conjunctions opening a clause ("And so").
 public func reviewCleanup(input: String, output: String, formal: Bool = false) -> CleanupRejection? {
     if output.allSatisfy(\.isWhitespace) { return input.allSatisfy(\.isWhitespace) ? nil : .empty }
+
+    if isShouting(output), !isShouting(input) { return .shouting }
 
     let inputTokens = Set(codeTokens(in: input)), outputTokens = codeTokens(in: output)
     if let changed = outputTokens.first(where: { !inputTokens.contains($0) }) { return .changedToken(changed) }
@@ -71,6 +76,12 @@ public func reviewCleanup(input: String, output: String, formal: Bool = false) -
     }
     if !formal, deletedRuns.isEmpty, inserted.isEmpty, !madeList, output != input { return .cosmeticOnly }
     return nil
+}
+
+/// Mostly capitals, so a sentence in caps but not an acronym or two in a normal one.
+private func isShouting(_ text: String) -> Bool {
+    let letters = text.filter(\.isLetter)
+    return letters.count >= 6 && letters.filter(\.isUppercase).count * 10 > letters.count * 7
 }
 
 /// Words that start a self-correction. "instead" is left out: "from AuthContext instead of props" is not one.
