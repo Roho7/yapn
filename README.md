@@ -29,11 +29,11 @@ No cloud. Your voice never leaves your Mac.
 
 | Platform | File |
 |---|---|
-| macOS 14+, Apple Silicon | [Yapn.zip](https://github.com/Roho7/yapn/releases/latest)* |
+| macOS 14+, Apple Silicon | [Yapn.dmg](https://github.com/Roho7/yapn/releases/latest)* |
 
 \*Not notarized by Apple yet, so macOS blocks the first open. Go to System Settings > Privacy & Security and click **Open Anyway**.
 
-1. Unzip it and drag `Yapn.app` to Applications.
+1. Open the DMG and drag Yapn to Applications.
 2. Open it. The first launch downloads a ~450 MB speech model.
 3. Allow Microphone, then turn Yapn on under Privacy & Security > Accessibility. Reopen it once.
 
@@ -150,11 +150,7 @@ Turn on Apple Intelligence and it gets a lot smarter. It catches self-correction
 
 1. You need a Mac with Apple Silicon running macOS 26.
 2. Open System Settings > Apple Intelligence & Siri and turn on Apple Intelligence. The first time, it downloads its model.
-3. Then switch Yapn's smart cleanup on:
-
-```
-defaults write dev.roho.yapn llmCleanup -bool YES
-```
+3. Click Yapn in the menu bar and switch on **Smart cleanup**.
 
 It runs on your Mac, like everything else. And it only steps in when your words need it, so everyday dictation stays instant. Without Apple Intelligence, Yapn simply skips these steps and types what the rules give it.
 
