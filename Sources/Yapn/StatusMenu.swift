@@ -74,10 +74,10 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         historyFolder.toolTip = Self.historyPrivacy
         menu.addItem(historyFolder)
         menu.addItem(.separator())
-        menu.addItem(action("Quit Dictation", #selector(quit), represented: nil, key: "q"))
+        menu.addItem(action("Quit Yapn", #selector(quit), represented: nil, key: "q"))
     }
 
-    private static let historyPrivacy = "Saves each dictation's audio and text in ~/Library/Application Support/Dictation/history "
+    private static let historyPrivacy = "Saves each dictation's audio and text in ~/Library/Application Support/Yapn/history "
         + "so `bench label` can turn them into your eval set. It stays on this Mac and is never uploaded."
 
     private static func stateLine(for state: DictationState) -> String {
@@ -96,7 +96,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     private static let menuIcon: NSImage? = {
         guard let image = Bundle.main.image(forResource: "MenuIcon") else { return nil }
         image.isTemplate = true
-        image.accessibilityDescription = "Dictation"
+        image.accessibilityDescription = "Yapn"
         return image
     }()
 
@@ -106,7 +106,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         case .idle, .recording, .transcribing, .inserting:
             if let menuIcon { return menuIcon }
         }
-        return NSImage(systemSymbolName: symbol(for: state), accessibilityDescription: "Dictation")
+        return NSImage(systemSymbolName: symbol(for: state), accessibilityDescription: "Yapn")
     }
 
     private static func symbol(for state: DictationState) -> String {

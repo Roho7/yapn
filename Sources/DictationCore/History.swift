@@ -92,7 +92,7 @@ public struct HistoryStore: Sendable {
     public let directory: URL
 
     public static let defaultDirectory = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent("Library/Application Support/Dictation/history")
+        .appendingPathComponent("Library/Application Support/Yapn/history")
 
     public init(directory: URL) {
         self.directory = directory

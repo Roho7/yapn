@@ -107,7 +107,7 @@ let styleRules: [StyleRule] = [
 ]
 
 /// `overrides` maps a bundle id to a style and wins over the table:
-/// `defaults write dev.roho.dictation styleOverrides -dict com.apple.Terminal claude-code`.
+/// `defaults write dev.roho.yapn styleOverrides -dict com.apple.Terminal claude-code`.
 public func resolveStyle(for target: DictationTarget, overrides: [String: DictationStyle] = [:]) -> StyleDecision {
     if let bundleID = target.bundleID, let style = overrides[bundleID] {
         return StyleDecision(style: style, rule: "override for \(bundleID)")

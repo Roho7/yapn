@@ -9,9 +9,9 @@ WAV=$(cd "$(dirname "${1:-data/clips/007.wav}")" && pwd)/$(basename "${1:-data/c
 DELAY=${SELFTEST_DELAY:-3}
 LOGS=$(mktemp -d)
 
-pkill -f 'Dictation.app/Contents/MacOS/Dictation' 2>/dev/null || true
+pkill -f 'Yapn.app/Contents/MacOS/Yapn' 2>/dev/null || true
 echo "pasting into the frontmost app in ${DELAY}s"
 sleep "$DELAY"
-open -g -n -W build/Dictation.app --stdout "$LOGS/out" --stderr "$LOGS/err" --args --selftest "$WAV" || true
+open -g -n -W build/Yapn.app --stdout "$LOGS/out" --stderr "$LOGS/err" --args --selftest "$WAV" || true
 cat "$LOGS/err" "$LOGS/out"
 grep -q '"passed":"true"' "$LOGS/out"

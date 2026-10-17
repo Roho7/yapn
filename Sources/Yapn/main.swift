@@ -7,9 +7,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let arguments = CommandLine.arguments
-        // `--llm-cleanup`, or `defaults write dev.roho.dictation llmCleanup -bool YES` for `open build/Dictation.app`.
+        // `--llm-cleanup`, or `defaults write dev.roho.yapn llmCleanup -bool YES` for `open build/Yapn.app`.
         let llmCleanup = arguments.contains("--llm-cleanup") || UserDefaults.standard.bool(forKey: "llmCleanup")
-        // `--keep-history`, or `defaults write dev.roho.dictation keepHistory -bool YES`; the menu toggle writes the same default.
+        // `--keep-history`, or `defaults write dev.roho.yapn keepHistory -bool YES`; the menu toggle writes the same default.
         let keepHistory = arguments.contains("--keep-history") || UserDefaults.standard.bool(forKey: AppController.keepHistoryKey)
         if arguments.contains("--notch-live") {
             NotchIndicator.runLive()

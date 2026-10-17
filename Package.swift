@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "DictationBench",
+    name: "Yapn",
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "DictationCore", targets: ["DictationCore"]),
         .executable(name: "bench", targets: ["bench"]),
-        .executable(name: "Dictation", targets: ["Dictation"]),
+        .executable(name: "Yapn", targets: ["Yapn"]),
     ],
     dependencies: [
         .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.17.0"),
@@ -32,7 +32,7 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "Dictation",
+            name: "Yapn",
             dependencies: ["DictationCore"]
         ),
     ]

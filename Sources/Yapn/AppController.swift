@@ -318,5 +318,5 @@ private func measure<T>(_ body: () -> T) -> (T, Double) {
 }
 
 func log(_ message: String) {
-    FileHandle.standardError.write(Data("[dictation] \(message)\n".utf8))
+    FileHandle.standardError.write(Data("[yapn] \(message)\n".utf8))
 }
