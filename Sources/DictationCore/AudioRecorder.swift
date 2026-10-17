@@ -18,8 +18,15 @@ public final class AudioRecorder: @unchecked Sendable {
     private let engine = AVAudioEngine()
     private let lock = NSLock()
     private var chunks: [AVAudioPCMBuffer] = []
+    private let meter = LevelMeter()
 
-    public init() {}
+    /// Called about every 20 ms while recording with the input level, 0...1 on a dB scale
+    /// (see `normalisedLevel`). Called on a background queue. Set it before `start()`.
+    public var onLevel: (@Sendable (Float) -> Void)?
+
+    public init() {
+        engine.attach(meter.sink)
+    }
 
     public static func requestAccess() async -> Bool {
         await AVCaptureDevice.requestAccess(for: .audio)
@@ -47,10 +54,13 @@ public final class AudioRecorder: @unchecked Sendable {
             }
             lock.withLock { chunks.append(copy) }
         }
+        engine.connect(engine.inputNode, to: meter.sink, format: format)
+        meter.start(sampleRate: format.sampleRate, onLevel: onLevel)
         engine.prepare()
         do {
             try engine.start()
         } catch {
+            meter.stop()
             engine.inputNode.removeTap(onBus: 0)
             throw error
         }
@@ -59,6 +69,7 @@ public final class AudioRecorder: @unchecked Sendable {
     /// Returns 16kHz mono Float32. Empty if nothing was captured or conversion failed.
     public func stop() -> [Float] {
         engine.stop()
+        meter.stop()
         engine.inputNode.removeTap(onBus: 0)
         let captured = lock.withLock { chunks }
         lock.withLock { chunks = [] }
