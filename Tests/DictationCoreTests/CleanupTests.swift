@@ -3,12 +3,12 @@ import Testing
 
 private struct FixedCleaner: TranscriptCleaner {
     let output: String
-    func clean(_ text: String) async throws -> String { output }
+    func clean(_ text: String, instructions: String) async throws -> String { output }
 }
 
 private struct FailingCleaner: TranscriptCleaner {
     struct Unavailable: Error {}
-    func clean(_ text: String) async throws -> String { throw Unavailable() }
+    func clean(_ text: String, instructions: String) async throws -> String { throw Unavailable() }
 }
 
 struct CleanupPipelineTests {

@@ -39,20 +39,24 @@ public func makeSystemCleaner() -> CleanerStatus {
 actor FoundationModelsCleaner: TranscriptCleaner {
     private let model = SystemLanguageModel(guardrails: .permissiveContentTransformations)
     private var next: LanguageModelSession
+    private var nextInstructions: String
 
     init() {
+        nextInstructions = cleanupInstructions
         next = LanguageModelSession(model: model, instructions: cleanupInstructions)
         next.prewarm(promptPrefix: FoundationModels.Prompt(promptLabel))
     }
 
-    func prewarm() {
-        next = LanguageModelSession(model: model, instructions: cleanupInstructions)
+    func prewarm(instructions: String) {
+        nextInstructions = instructions
+        next = LanguageModelSession(model: model, instructions: instructions)
         next.prewarm(promptPrefix: FoundationModels.Prompt(promptLabel))
     }
 
-    func clean(_ text: String) async throws -> String {
-        let session = next
-        next = LanguageModelSession(model: model, instructions: cleanupInstructions)
+    func clean(_ text: String, instructions: String) async throws -> String {
+        let session = nextInstructions == instructions ? next : LanguageModelSession(model: model, instructions: instructions)
+        next = LanguageModelSession(model: model, instructions: instructions)
+        nextInstructions = instructions
         let options = GenerationOptions(sampling: .greedy, maximumResponseTokens: text.utf8.count / 3 + 24)
         let response = try await session.respond(to: promptLabel + text, options: options)
         return unwrapped(response.content)

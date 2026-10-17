@@ -19,6 +19,29 @@ struct HistoryStoreTests {
         #expect(items.map(\.label) == [nil, nil])
     }
 
+    @Test func styleAndWindowTitleAreKept() throws {
+        let entry = HistoryEntry(
+            recordedAt: historyEntry(atSecond: 1, raw: "x", pasted: "x").recordedAt, raw: "Git status.", formatted: "git status",
+            cleanup: .skipped, pasted: "git status", frontmostApp: "com.apple.Terminal", windowTitle: "zsh", style: .shell,
+            timings: historyEntry(atSecond: 1, raw: "x", pasted: "x").timings
+        )
+
+        let saved = try withTempHistory { history, _ in
+            try history.save(entry, samples: tone)
+            return try history.items().map(\.entry)
+        }
+
+        #expect(saved == [entry])
+    }
+
+    @Test func entriesFromBeforeStylesStillLoad() throws {
+        let entry = try decodeLegacyEntry()
+
+        #expect(entry.style == nil)
+        #expect(entry.windowTitle == nil)
+        #expect(entry.pasted == "git status")
+    }
+
     @Test func cleanupOutcomesAreRecordedWithTheirReason() {
         #expect(HistoryCleanup(.skipped) == .skipped)
         #expect(HistoryCleanup(.accepted("meet Tuesday")) == .cleaned(text: "meet Tuesday"))

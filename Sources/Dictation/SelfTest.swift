@@ -37,6 +37,7 @@ func runSelfTest(_ controller: AppController, paste: Bool) async {
         "frontmostBefore": frontBefore,
         "frontmostAfter": frontAfter,
         "pasted": "\(paste)",
+        "style": controller.styled.map { "\($0.decision.style.rawValue) (\($0.decision.rule); \($0.target.bundleID ?? "none"), title \($0.target.windowTitle ?? "none"))" } ?? "none",
         "history": historyEntry?.path ?? (controller.keepHistory ? "not saved" : "off"),
         "accessibilityTrusted": "\(Permission.accessibility.isGranted)",
         "menu": controller.menuTitles,

@@ -22,8 +22,16 @@ public struct FormattingContext: Sendable, Equatable {
 /// a symbol that introduces a name ("/" or "--") is resolved against `context`,
 /// then spoken breaks and list markers (`spokenBreaks`, `listMarkers`) lay the text out as lines and Markdown lists.
 /// Text where no rule fires comes back unchanged, apart from whitespace runs collapsing to one space.
-public func format(_ raw: String, context: FormattingContext) -> String {
-    layout(resolveNames(recognizeSymbols(removeDisfluencies(lex(raw))), context: context))
+/// `style` adds to that: `formal` closes every sentence, and `shell` writes a command line instead (see `shellCommand`).
+public func format(_ raw: String, context: FormattingContext, style: DictationStyle = .default) -> String {
+    switch style {
+    case .default, .claudeCode:
+        layout(resolveNames(recognizeSymbols(removeDisfluencies(lex(raw))), context: context))
+    case .formal:
+        formalSentences(layout(resolveNames(recognizeSymbols(withoutFormalCrutches(removeDisfluencies(lex(raw)))), context: context)))
+    case .shell:
+        shellCommand(raw, context: context)
+    }
 }
 
 struct Word: Equatable {

@@ -17,6 +17,10 @@ public enum CleanupRejection: Sendable, Equatable, CustomStringConvertible {
     case tooShort(input: Int, output: Int)
     /// The same words with only case or punctuation changed: not an edit the cleaner is for.
     case cosmeticOnly
+    /// A command came back on more than one line; pasted into a shell, a newline runs it.
+    case multiline
+    /// A command with an odd number of double quotes, which leaves the shell waiting for more.
+    case unbalancedQuotes
 
     public var description: String {
         switch self {
@@ -29,6 +33,8 @@ public enum CleanupRejection: Sendable, Equatable, CustomStringConvertible {
         case .deletedWords(let words): "deleted words that are not a hesitation or a correction: \(words.joined(separator: " "))"
         case .tooShort(let input, let output): "kept \(output) of \(input) words"
         case .cosmeticOnly: "changed only case or punctuation"
+        case .multiline: "wrote more than one line"
+        case .unbalancedQuotes: "left a double quote open"
         }
     }
 }
@@ -40,7 +46,9 @@ public enum CleanupRejection: Sendable, Equatable, CustomStringConvertible {
 /// ("um", "you know", "kind of"), a repeat of the words beside it, a short clause the next one restarts, or,
 /// after a cue, hold the cue. Without a cue nothing may be added and at least half the words stay;
 /// with one, at most two joining words may appear and a quarter of the words stay.
-public func reviewCleanup(input: String, output: String) -> CleanupRejection? {
+/// `formal` widens this for the formal style: case and punctuation changes are the point, up to two words may be
+/// added, and the deletable crutches include intensifiers ("just", "really") and conjunctions opening a clause ("And so").
+public func reviewCleanup(input: String, output: String, formal: Bool = false) -> CleanupRejection? {
     if output.allSatisfy(\.isWhitespace) { return input.allSatisfy(\.isWhitespace) ? nil : .empty }
 
     let inputTokens = Set(codeTokens(in: input)), outputTokens = codeTokens(in: output)
@@ -53,15 +61,15 @@ public func reviewCleanup(input: String, output: String) -> CleanupRejection? {
 
     let inputWords = clauseWords(input), outputWords = clauseWords(output)
     let (deletedRuns, inserted) = align(inputWords.map(\.text), outputWords.map(\.text))
-    if inserted.count > (corrected ? 2 : 0) { return .addedWords(inserted) }
+    if inserted.count > (corrected || formal ? 2 : 0) { return .addedWords(inserted) }
     let madeList = output.split(separator: "\n").contains { $0.hasPrefix("- ") }
-    if let run = deletedRuns.first(where: { !isDeletable($0, of: inputWords, corrected: corrected, madeList: madeList) }) {
+    if let run = deletedRuns.first(where: { !isDeletable($0, of: inputWords, corrected: corrected, madeList: madeList, formal: formal) }) {
         return .deletedWords(inputWords[run].map(\.text))
     }
     if outputWords.count * (corrected ? 4 : 2) < inputWords.count {
         return .tooShort(input: inputWords.count, output: outputWords.count)
     }
-    if deletedRuns.isEmpty, inserted.isEmpty, !madeList, output != input { return .cosmeticOnly }
+    if !formal, deletedRuns.isEmpty, inserted.isEmpty, !madeList, output != input { return .cosmeticOnly }
     return nil
 }
 
@@ -82,9 +90,9 @@ private var cueInRun: Regex<Substring> {
 
 /// A deleted run is, after a cue, a correction that holds the cue. Otherwise, once its crutches and a list's "and"
 /// are taken out, what is left must be nothing, a repeat of the words beside it, or a clause the next one restarts.
-private func isDeletable(_ run: Range<Int>, of words: [SpokenWord], corrected: Bool, madeList: Bool) -> Bool {
+private func isDeletable(_ run: Range<Int>, of words: [SpokenWord], corrected: Bool, madeList: Bool, formal: Bool) -> Bool {
     if corrected, words[run].map(\.text).joined(separator: " ").contains(cueInRun) { return true }
-    let rest = strippingCrutches(run, of: words, madeList: madeList).rest
+    let rest = strippingCrutches(run, of: words, madeList: madeList, formal: formal).rest
     return rest.isEmpty || isRepeat(rest, at: run, in: words) || isRestart(rest, at: run, in: words)
 }
 

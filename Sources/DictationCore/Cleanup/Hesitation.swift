@@ -22,19 +22,19 @@ private let fillers: Set<String> = ["um", "umm", "uh", "er", "erm", "ah", "hmm"]
 /// Words a speaker leans on while thinking. Each counts only where it cannot be doing grammatical work:
 /// "like" after "I" or "looks" is a verb or a comparison, "kind of" after "what" or "a" names a kind,
 /// "you know" after "do" asks a question, and "so", "well", "okay" and "oh" only lead a clause.
-private struct Crutch {
+struct Crutch {
     let words: [String]
     var notAfter: Set<String> = []
     var leadsClause = false
 }
 
-private let determiners: Set<String> = [
+let determiners: Set<String> = [
     "a", "an", "the", "this", "that", "these", "those", "what", "which", "some", "any", "every", "each",
     "same", "one", "no", "my", "your", "our", "their", "his", "her", "all", "other", "another", "different",
 ]
 
 /// `spokenWords` drops apostrophes, so "don't" is "dont" and "I'd" is "id".
-private let crutches: [Crutch] = [
+let crutches: [Crutch] = [
     Crutch(words: ["you", "know"], notAfter: ["do", "did", "dont", "didnt", "if", "would", "will", "should", "let", "you"]),
     Crutch(words: ["i", "mean"], notAfter: ["what", "if", "thats"]),
     Crutch(words: ["kind", "of"], notAfter: determiners),
@@ -53,11 +53,24 @@ private let crutches: [Crutch] = [
     Crutch(words: ["oh"], leadsClause: true),
 ]
 
+/// What formal writing also drops: intensifiers a speaker leans on, and conjunctions stacked at a clause's head
+/// ("And so", "But like"). Never used for the default style, where "And then we ship" is how the speaker writes.
+private let formalCrutches: [Crutch] = [
+    Crutch(words: ["just"]),
+    Crutch(words: ["really"]),
+    Crutch(words: ["honestly"]),
+    Crutch(words: ["totally"]),
+    Crutch(words: ["super"]),
+    Crutch(words: ["actually"]),
+    Crutch(words: ["anyway"]),
+    Crutch(words: ["anyways"]),
+] + ["and", "but", "or", "then", "also", "plus"].map { Crutch(words: [$0], leadsClause: true) }
+
 /// The length of the crutch starting at `index`, if one does and it ends by `end`.
 /// `leading` says the word sits at the head of a clause, counting crutches already passed ("okay so").
-private func crutchLength(at index: Int, in words: [SpokenWord], end: Int, leading: Bool) -> Int? {
+private func crutchLength(at index: Int, in words: [SpokenWord], end: Int, leading: Bool, formal: Bool) -> Int? {
     let before = index > 0 ? words[index - 1].text : nil
-    return crutches.first { crutch in
+    return (formal ? crutches + formalCrutches : crutches).first { crutch in
         index + crutch.words.count <= end
             && words[index..<index + crutch.words.count].map(\.text) == crutch.words
             && !(before.map(crutch.notAfter.contains) ?? false)
@@ -67,7 +80,7 @@ private func crutchLength(at index: Int, in words: [SpokenWord], end: Int, leadi
 
 /// `words[range]` split into its hesitation words (fillers, crutches and, once a list is laid out, its joining
 /// "and" or "or") and the words left.
-func strippingCrutches(_ range: Range<Int>, of words: [SpokenWord], madeList: Bool = false) -> (crutches: Int, rest: [String]) {
+func strippingCrutches(_ range: Range<Int>, of words: [SpokenWord], madeList: Bool = false, formal: Bool = false) -> (crutches: Int, rest: [String]) {
     var crutchCount = 0
     var rest: [String] = []
     var leading = false
@@ -77,7 +90,7 @@ func strippingCrutches(_ range: Range<Int>, of words: [SpokenWord], madeList: Bo
         if fillers.contains(words[i].text) || (madeList && ["and", "or"].contains(words[i].text)) {
             crutchCount += 1
             i += 1
-        } else if let length = crutchLength(at: i, in: words, end: range.upperBound, leading: leading) {
+        } else if let length = crutchLength(at: i, in: words, end: range.upperBound, leading: leading, formal: formal) {
             crutchCount += 1
             i += length
         } else {

@@ -12,6 +12,7 @@ struct Rescore: AsyncParsableCommand {
     @Flag(name: .customLong("cleanup"), help: "Also add a row with the formatter's output passed through the on-device LLM cleanup. Implies --format.") var applyCleanup = false
     @Flag(name: .customLong("cleanup-all"), help: "Send every transcript to the cleaner, not only those with a correction cue or a list shape.") var cleanupAll = false
     @Option(help: "Seconds between prewarming the cleaner and each cleanup call, standing in for the hotkey hold during which the app prewarms.") var pause = 1.0
+    @Option(help: "The style to format and clean in: \(DictationStyle.allCases.map(\.rawValue).joined(separator: ", ")).") var style = DictationStyle.default
     @Option(help: "Skills directory the formatter resolves names from.") var skillsDir = SkillCatalog.defaultDirectory.path
     @Flag(help: "Print every clip's transcript with its strict misses and false insertions.") var clips = false
 
@@ -43,12 +44,12 @@ struct Rescore: AsyncParsableCommand {
         for run in raw.runs {
             var runPasses: [ClipPass] = []
             for (index, clip) in run.clips.enumerated() {
-                let (formatted, formatSeconds) = measure { format(clip.transcript, context: context) }
+                let (formatted, formatSeconds) = measure { format(clip.transcript, context: context, style: style) }
                 var cleaned: CleanupResult?
                 if let cleaner {
-                    await cleaner.prewarm()
+                    await cleaner.prewarm(instructions: cleanupInstructions(for: style))
                     if pause > 0 { try await Task.sleep(for: .seconds(pause)) }
-                    let result = await cleanup(formatted, with: cleaner, always: cleanupAll)
+                    let result = await cleanup(formatted, with: cleaner, style: style, always: cleanupAll)
                     print("[cleanup \(run.variant.id)] \(index + 1)/\(run.clips.count) \(String(format: "%.0f", result.seconds * 1000))ms")
                     cleaned = result
                 }
@@ -64,7 +65,7 @@ struct Rescore: AsyncParsableCommand {
             }
         }
 
-        print("\(raw.hardware), \(raw.prompts.count) prompts; \(context.skills.count) skills from \(skillsURL.path), \(context.slashCommands.count) built-in commands\n")
+        print("\(raw.hardware), \(raw.prompts.count) prompts, style \(style.rawValue); \(context.skills.count) skills from \(skillsURL.path), \(context.slashCommands.count) built-in commands\n")
         print(rescoreTable(rows))
         let skipped = saved.runs.filter { $0.run == nil }.map(\.label)
         if !skipped.isEmpty { print("skipped runs from engines this build does not know: \(skipped.joined(separator: ", "))") }

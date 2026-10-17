@@ -1,14 +1,15 @@
 /// A second pass over the formatted transcript for what rules cannot do: self-corrections
 /// ("Monday, no wait, Tuesday"), hesitant restarts ("we should, we should, you know, add"), and lists spoken without markers.
 public protocol TranscriptCleaner: Sendable {
-    func clean(_ text: String) async throws -> String
-    /// Gets ready for the next `clean`. The on-device model's warm state fades after 5 to 10 s idle and takes
-    /// ~700 ms to rebuild, so callers prewarm when a dictation starts, while the user is still speaking.
-    func prewarm() async
+    /// `instructions` is the style's system prompt, `cleanupPolicy(for:).instructions`.
+    func clean(_ text: String, instructions: String) async throws -> String
+    /// Gets ready for the next `clean` with these instructions. The on-device model's warm state fades after 5 to 10 s
+    /// idle and takes ~700 ms to rebuild, so callers prewarm when a dictation starts, while the user is still speaking.
+    func prewarm(instructions: String) async
 }
 
 extension TranscriptCleaner {
-    public func prewarm() async {}
+    public func prewarm(instructions: String) async {}
 }
 
 public enum CleanupOutcome: Sendable, Equatable {
@@ -39,17 +40,18 @@ public struct CleanupResult: Sendable, Equatable {
     }
 }
 
-/// Runs `cleaner` on the rule output and keeps its answer only if `reviewCleanup` accepts it.
-/// Text with no correction cue, restart signal, hesitation or list shape skips the cleaner, unless `always` is set.
+/// Runs `cleaner` on the rule output and keeps its answer only if the style's review accepts it.
+/// Text the style's gate says needs nothing skips the cleaner, unless `always` is set.
 /// It never throws: every failure falls back to `formatted`.
-public func cleanup(_ formatted: String, with cleaner: any TranscriptCleaner, always: Bool = false) async -> CleanupResult {
-    guard always || mayNeedCleanup(formatted) else { return CleanupResult(input: formatted, outcome: .skipped, seconds: 0) }
+public func cleanup(_ formatted: String, with cleaner: any TranscriptCleaner, style: DictationStyle = .default, always: Bool = false) async -> CleanupResult {
+    let policy = cleanupPolicy(for: style)
+    guard always || policy.mayNeedCleanup(formatted) else { return CleanupResult(input: formatted, outcome: .skipped, seconds: 0) }
     let clock = ContinuousClock()
     let start = clock.now
     let outcome: CleanupOutcome
     do {
-        let cleaned = try await cleaner.clean(formatted)
-        outcome = reviewCleanup(input: formatted, output: cleaned).map { .rejected(output: cleaned, $0) } ?? .accepted(cleaned)
+        let cleaned = policy.normalize(try await cleaner.clean(formatted, instructions: policy.instructions))
+        outcome = policy.review(formatted, cleaned).map { .rejected(output: cleaned, $0) } ?? .accepted(cleaned)
     } catch {
         outcome = .rejected(output: nil, .failed("\(error)"))
     }

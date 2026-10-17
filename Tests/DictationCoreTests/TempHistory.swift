@@ -25,3 +25,14 @@ func writeTornEntry(in history: HistoryStore, samples: [Float]) throws {
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     try writeWAV(samples, to: directory.appendingPathComponent("audio.wav"))
 }
+
+/// An entry.json as the app wrote it before styles existed.
+func decodeLegacyEntry() throws -> HistoryEntry {
+    let json = """
+    {"cleanup":{"skipped":{}},"formatted":"git status","frontmostApp":"com.apple.Terminal","pasted":"git status","raw":"Git status.",
+     "recordedAt":"2026-10-17T10:00:00Z","timings":{"audioSeconds":1,"formatMs":0.1,"releaseToPasteMs":40,"stopMs":2,"transcribeMs":30}}
+    """
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+    return try decoder.decode(HistoryEntry.self, from: Data(json.utf8))
+}

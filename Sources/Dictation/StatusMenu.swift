@@ -14,12 +14,12 @@ struct LastDictation {
 final class StatusMenu: NSObject, NSMenuDelegate {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let menu = NSMenu()
-    private let snapshot: () -> (DictationState, LastDictation?, cleanupLine: String, keepHistory: Bool)
+    private let snapshot: () -> (DictationState, LastDictation?, cleanupLine: String, styleLine: String, keepHistory: Bool)
     private let onMenuOpen: () -> Void
     private let onToggleHistory: () -> Void
 
     init(
-        snapshot: @escaping () -> (DictationState, LastDictation?, cleanupLine: String, keepHistory: Bool),
+        snapshot: @escaping () -> (DictationState, LastDictation?, cleanupLine: String, styleLine: String, keepHistory: Bool),
         onMenuOpen: @escaping () -> Void,
         onToggleHistory: @escaping () -> Void
     ) {
@@ -41,7 +41,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     }
 
     func render() {
-        let (state, last, cleanupLine, keepHistory) = snapshot()
+        let (state, last, cleanupLine, styleLine, keepHistory) = snapshot()
         item.button?.image = Self.image(for: state)
 
         menu.removeAllItems()
@@ -56,6 +56,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
             menu.addItem(disabled("No dictation yet"))
         }
         menu.addItem(.separator())
+        menu.addItem(disabled(styleLine))
         menu.addItem(disabled(cleanupLine))
         for permission in Permission.allCases {
             if permission.isGranted {

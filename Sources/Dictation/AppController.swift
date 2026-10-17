@@ -15,9 +15,11 @@ final class AppController {
     private let indicator: any StatusIndicator
     private var shownPhase = IndicatorPhase.hidden
     private lazy var menu = StatusMenu(
-        snapshot: { [unowned self] in (state, last, cleanupState.menuLine, keepHistory) },
+        snapshot: { [unowned self] in (state, last, cleanupState.menuLine, styleLine, keepHistory) },
         onMenuOpen: { [unowned self] in
             formattingContext = loadFormattingContext()
+            styleOverrides = loadOverrides()
+            styled = resolve(captureTarget())
             refreshCleanup()
             refreshAccessibility()
         },
@@ -38,6 +40,9 @@ final class AppController {
     private var pendingTake: TranscribedTake?
     /// The last history save, which runs off the main actor; its value is the entry's directory, nil if it failed.
     private(set) var historyWrite: Task<URL?, Never>?
+    /// The app the next or current dictation is for and the style it resolved to; set at hotkey-down and when the menu opens.
+    private(set) var styled: StyledTarget?
+    private var styleOverrides = loadOverrides()
 
     var menuTitles: [String] { menu.titles }
 
@@ -84,20 +89,29 @@ final class AppController {
         switch effect {
         case .startRecording:
             do { try audio.start() } catch { send(.failed("\(error)")) }
+            let (target, captureSeconds) = measure { captureTarget() }
+            let styled = resolve(target)
+            self.styled = styled
+            log(String(format: "style: %@ for %@ (%@, title %@; rule: %@; read in %.1f ms)",
+                       styled.decision.style.rawValue, target.appName ?? "?", target.bundleID ?? "no bundle id",
+                       target.windowTitle.map { "\"\($0)\"" } ?? "none", styled.decision.rule, captureSeconds * 1000))
             // The model's warm state fades within seconds, so it is rebuilt while the user speaks.
             refreshCleanup()
-            if let cleaner = cleanupState.cleaner { Task { await cleaner.prewarm() } }
+            let instructions = cleanupInstructions(for: styled.decision.style)
+            if let cleaner = cleanupState.cleaner { Task { await cleaner.prewarm(instructions: instructions) } }
         case .cancelRecording:
             _ = audio.stop()
         case .stopAndTranscribe:
             let (samples, stopSeconds) = measure { padToMinimum(audio.stop()) }
             let cleaner = cleanupState.cleaner
+            let styled = styled ?? resolve(DictationTarget(bundleID: nil, appName: nil, windowTitle: nil))
+            let style = styled.decision.style
             // Detached so inference starts now instead of after the main actor finishes rendering.
             Task.detached { [engine, formattingContext] in
                 do {
                     let (raw, seconds) = try await timed { try await engine.transcribe(samples) }
-                    let (formatted, formatSeconds) = measure { format(raw, context: formattingContext) }
-                    let cleaned = if let cleaner { await cleanup(formatted, with: cleaner) } else { CleanupResult?.none }
+                    let (formatted, formatSeconds) = measure { format(raw, context: formattingContext, style: style) }
+                    let cleaned = if let cleaner { await cleanup(formatted, with: cleaner, style: style) } else { CleanupResult?.none }
                     log(String(format: "audio %.2fs, stop+convert %.1f ms, transcribe %.1f ms, format %.2f ms",
                                Double(samples.count) / targetSampleRate, stopSeconds * 1000, seconds * 1000, formatSeconds * 1000)
                         + (cleaned.map { String(format: ", cleanup %.1f ms", $0.seconds * 1000) } ?? ""))
@@ -105,7 +119,7 @@ final class AppController {
                     log("formatted: \(formatted)")
                     if let cleaned { log(cleanupLogLine(cleaned.outcome)) }
                     await self.transcribed(TranscribedTake(
-                        samples: samples, raw: raw, formatted: formatted, cleanup: cleaned,
+                        samples: samples, styled: styled, raw: raw, formatted: formatted, cleanup: cleaned,
                         stopMs: stopSeconds * 1000, transcribeMs: seconds * 1000, formatMs: formatSeconds * 1000
                     ))
                 } catch {
@@ -145,7 +159,9 @@ final class AppController {
             formatted: take.formatted,
             cleanup: take.cleanup.map { HistoryCleanup($0.outcome) },
             pasted: pasted,
-            frontmostApp: NSWorkspace.shared.frontmostApplication?.bundleIdentifier,
+            frontmostApp: take.styled.target.bundleID,
+            windowTitle: take.styled.target.windowTitle,
+            style: take.styled.decision.style,
             timings: HistoryTimings(
                 audioSeconds: Double(take.samples.count) / targetSampleRate,
                 stopMs: take.stopMs,
@@ -226,6 +242,7 @@ final class AppController {
 private struct TranscribedTake: Sendable {
     /// The exact samples Parakeet transcribed.
     let samples: [Float]
+    let styled: StyledTarget
     let raw: String
     let formatted: String
     /// Nil when LLM cleanup was off.
@@ -234,7 +251,15 @@ private struct TranscribedTake: Sendable {
     let transcribeMs: Double
     let formatMs: Double
 
-    var text: String { cleanup?.text ?? formatted }
+    var text: String { pasteText(cleanup?.text ?? formatted, style: styled.decision.style) }
+}
+
+/// Where a dictation goes and how it is written there.
+struct StyledTarget: Sendable {
+    let target: DictationTarget
+    let decision: StyleDecision
+
+    var menuLine: String { "Style: \(decision.style.name) (\(target.appName ?? target.bundleID ?? "unknown app"))" }
 }
 
 /// The LLM cleanup pass: off unless asked for, and once asked for, ready or waiting on this Mac.
@@ -258,10 +283,26 @@ enum CleanupState {
 
 private func cleanupLogLine(_ outcome: CleanupOutcome) -> String {
     switch outcome {
-    case .skipped: "cleanup: skipped (no correction cue or list)"
+    case .skipped: "cleanup: skipped (nothing for the model to do in this style)"
     case .accepted(let text): "cleaned: \(text)"
     case .rejected(let output, let reason): "cleanup fell back (\(reason))" + (output.map { "; llm said: \($0)" } ?? "")
     }
+}
+
+extension AppController {
+    private func resolve(_ target: DictationTarget) -> StyledTarget {
+        StyledTarget(target: target, decision: resolveStyle(for: target, overrides: styleOverrides))
+    }
+
+    private var styleLine: String { styled?.menuLine ?? "Style: chosen per app when you dictate" }
+}
+
+private func loadOverrides() -> [String: DictationStyle] {
+    let (overrides, invalid) = loadStyleOverrides()
+    if !invalid.isEmpty {
+        log("styleOverrides: ignoring \(invalid.joined(separator: ", ")); styles are \(DictationStyle.allCases.map(\.rawValue).joined(separator: ", "))")
+    }
+    return overrides
 }
 
 private func loadFormattingContext() -> FormattingContext {

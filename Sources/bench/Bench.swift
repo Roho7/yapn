@@ -1,4 +1,5 @@
 import ArgumentParser
+import DictationCore
 
 @main
 struct Bench: AsyncParsableCommand {
@@ -8,3 +9,5 @@ struct Bench: AsyncParsableCommand {
         subcommands: [Transcribe.self, Record.self, Live.self, Run.self, Rescore.self, Label.self, Clean.self]
     )
 }
+
+extension DictationStyle: ExpressibleByArgument {}

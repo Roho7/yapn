@@ -8,16 +8,23 @@ public struct HistoryEntry: Codable, Sendable, Equatable {
     /// Nil when LLM cleanup was off.
     public let cleanup: HistoryCleanup?
     public let pasted: String
+    /// The app frontmost at hotkey-down, where the text was pasted.
     public let frontmostApp: String?
+    /// Nil in entries written before styles existed, and when the app gave no title.
+    public let windowTitle: String?
+    /// Nil in entries written before styles existed, which were all written as `default`.
+    public let style: DictationStyle?
     public let timings: HistoryTimings
 
-    public init(recordedAt: Date, raw: String, formatted: String, cleanup: HistoryCleanup?, pasted: String, frontmostApp: String?, timings: HistoryTimings) {
+    public init(recordedAt: Date, raw: String, formatted: String, cleanup: HistoryCleanup?, pasted: String, frontmostApp: String?, windowTitle: String? = nil, style: DictationStyle? = nil, timings: HistoryTimings) {
         self.recordedAt = recordedAt
         self.raw = raw
         self.formatted = formatted
         self.cleanup = cleanup
         self.pasted = pasted
         self.frontmostApp = frontmostApp
+        self.windowTitle = windowTitle
+        self.style = style
         self.timings = timings
     }
 }

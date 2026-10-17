@@ -9,6 +9,7 @@ struct Clean: AsyncParsableCommand {
 
     @Flag(help: "Send every line to the cleaner, not only those the gate lets through.") var all = false
     @Option(help: "Seconds between prewarming the cleaner and each cleanup call.") var pause = 1.0
+    @Option(help: "The style to write in: \(DictationStyle.allCases.map(\.rawValue).joined(separator: ", ")).") var style = DictationStyle.default
     @Option(help: "Skills directory the formatter resolves names from.") var skillsDir = SkillCatalog.defaultDirectory.path
 
     func run() async throws {
@@ -22,10 +23,10 @@ struct Clean: AsyncParsableCommand {
         while let line = readLine() {
             guard !line.allSatisfy(\.isWhitespace) else { continue }
             index += 1
-            let formatted = format(line, context: context)
-            await cleaner.prewarm()
+            let formatted = format(line, context: context, style: style)
+            await cleaner.prewarm(instructions: cleanupInstructions(for: style))
             if pause > 0 { try await Task.sleep(for: .seconds(pause)) }
-            let result = await cleanup(formatted, with: cleaner, always: all)
+            let result = await cleanup(formatted, with: cleaner, style: style, always: all)
             let head = String(format: "%3d %5.0f ms ", index, result.seconds * 1000)
             switch result.outcome {
             case .skipped:
