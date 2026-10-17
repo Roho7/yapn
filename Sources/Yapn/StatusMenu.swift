@@ -14,18 +14,21 @@ struct LastDictation {
 final class StatusMenu: NSObject, NSMenuDelegate {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let menu = NSMenu()
-    private let snapshot: () -> (DictationState, LastDictation?, cleanupLine: String, styleLine: String, keepHistory: Bool)
+    private let snapshot: () -> (DictationState, LastDictation?, cleanup: CleanupMenu, styleLine: String, keepHistory: Bool)
     private let onMenuOpen: () -> Void
     private let onToggleHistory: () -> Void
+    private let onToggleCleanup: () -> Void
 
     init(
-        snapshot: @escaping () -> (DictationState, LastDictation?, cleanupLine: String, styleLine: String, keepHistory: Bool),
+        snapshot: @escaping () -> (DictationState, LastDictation?, cleanup: CleanupMenu, styleLine: String, keepHistory: Bool),
         onMenuOpen: @escaping () -> Void,
-        onToggleHistory: @escaping () -> Void
+        onToggleHistory: @escaping () -> Void,
+        onToggleCleanup: @escaping () -> Void
     ) {
         self.snapshot = snapshot
         self.onMenuOpen = onMenuOpen
         self.onToggleHistory = onToggleHistory
+        self.onToggleCleanup = onToggleCleanup
         super.init()
         menu.delegate = self
         menu.autoenablesItems = false
@@ -41,7 +44,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     }
 
     func render() {
-        let (state, last, cleanupLine, styleLine, keepHistory) = snapshot()
+        let (state, last, cleanup, styleLine, keepHistory) = snapshot()
         item.button?.image = Self.image(for: state)
 
         menu.removeAllItems()
@@ -57,7 +60,20 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         }
         menu.addItem(.separator())
         menu.addItem(disabled(styleLine))
-        menu.addItem(disabled(cleanupLine))
+        let cleanupToggle = action("Smart cleanup", #selector(toggleCleanup), represented: nil)
+        cleanupToggle.state = switch cleanup.mark { case .off: .off; case .on: .on; case .waiting: .mixed }
+        cleanupToggle.toolTip = Self.cleanupHelp
+        menu.addItem(cleanupToggle)
+        if let detail = cleanup.detail {
+            let line = disabled(detail)
+            line.indentationLevel = 1
+            menu.addItem(line)
+        }
+        if cleanup.offersAppleIntelligenceSettings {
+            let open = action("Turn On Apple Intelligence…", #selector(openSettings), represented: Self.appleIntelligenceSettings)
+            open.indentationLevel = 1
+            menu.addItem(open)
+        }
         for permission in Permission.allCases {
             if permission.isGranted {
                 menu.addItem(disabled("\(permission.name): allowed"))
@@ -76,6 +92,11 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(action("Quit Yapn", #selector(quit), represented: nil, key: "q"))
     }
+
+    private static let appleIntelligenceSettings = URL(string: "x-apple.systempreferences:com.apple.Siri-Settings.extension")!
+
+    private static let cleanupHelp = "Fixes self-corrections and hesitation using Apple Intelligence. "
+        + "Needs macOS 26 with Apple Intelligence on. It runs on this Mac and only steps in when your words need it."
 
     private static let historyPrivacy = "Saves each dictation's audio and text in ~/Library/Application Support/Yapn/history "
         + "so `bench label` can turn them into your eval set. It stays on this Mac and is never uploaded."
@@ -145,6 +166,10 @@ final class StatusMenu: NSObject, NSMenuDelegate {
 
     @objc private func toggleHistory() {
         onToggleHistory()
+    }
+
+    @objc private func toggleCleanup() {
+        onToggleCleanup()
     }
 
     @objc private func openHistoryFolder() {

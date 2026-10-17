@@ -15,7 +15,7 @@ final class AppController {
     private let indicator: any StatusIndicator
     private var shownPhase = IndicatorPhase.hidden
     private lazy var menu = StatusMenu(
-        snapshot: { [unowned self] in (state, last, cleanupState.menuLine, styleLine, keepHistory) },
+        snapshot: { [unowned self] in (state, last, cleanupState.menu, styleLine, keepHistory) },
         onMenuOpen: { [unowned self] in
             formattingContext = loadFormattingContext()
             styleOverrides = loadOverrides()
@@ -23,7 +23,8 @@ final class AppController {
             refreshCleanup()
             refreshAccessibility()
         },
-        onToggleHistory: { [unowned self] in toggleHistory() }
+        onToggleHistory: { [unowned self] in toggleHistory() },
+        onToggleCleanup: { [unowned self] in toggleCleanup() }
     )
     private lazy var hotkey = RightOptionMonitor { [unowned self] isDown, at in
         send(isDown ? .hotkeyDown(at: at) : .hotkeyUp(at: at))
@@ -34,6 +35,7 @@ final class AppController {
     private var accessibilityPoll: Timer?
     private var cleanupState: CleanupState
     static let keepHistoryKey = "keepHistory"
+    static let llmCleanupKey = "llmCleanup"
     private(set) var keepHistory: Bool
     private let history = HistoryStore(directory: HistoryStore.defaultDirectory)
     /// The transcription waiting to be pasted, kept so the history entry can hold every stage.
@@ -194,6 +196,18 @@ final class AppController {
         menu.render()
     }
 
+    /// The menu's switch for smart cleanup. It writes the same default `--llm-cleanup` and `defaults write` use,
+    /// so the choice survives a relaunch, and asks the system right away whether the model is ready.
+    private func toggleCleanup() {
+        let turningOn: Bool
+        if case .off = cleanupState { turningOn = true } else { turningOn = false }
+        UserDefaults.standard.set(turningOn, forKey: Self.llmCleanupKey)
+        cleanupState = turningOn ? .unavailable("not checked yet") : .off
+        log(turningOn ? "LLM cleanup: turned on" : "LLM cleanup: turned off")
+        refreshCleanup()
+        menu.render()
+    }
+
     private func loadEngine() async {
         log("loading \(engine.variant.id)")
         do {
@@ -274,13 +288,22 @@ enum CleanupState {
         if case .ready(let cleaner) = self { cleaner } else { nil }
     }
 
-    var menuLine: String {
+    var menu: CleanupMenu {
         switch self {
-        case .off: "LLM cleanup: off"
-        case .unavailable(let reason): "LLM cleanup: unavailable (\(reason))"
-        case .ready: "LLM cleanup: on"
+        case .off: CleanupMenu(mark: .off, detail: nil, offersAppleIntelligenceSettings: false)
+        case .ready: CleanupMenu(mark: .on, detail: nil, offersAppleIntelligenceSettings: false)
+        case .unavailable(let reason):
+            CleanupMenu(mark: .waiting, detail: "Waiting: \(reason)", offersAppleIntelligenceSettings: reason.contains("Apple Intelligence is off"))
         }
     }
+}
+
+/// What the menu shows for smart cleanup: a switch, and while it is switched on but not ready, why and what to do.
+struct CleanupMenu {
+    enum Mark { case off, on, waiting }
+    let mark: Mark
+    let detail: String?
+    let offersAppleIntelligenceSettings: Bool
 }
 
 private func cleanupLogLine(_ outcome: CleanupOutcome) -> String {
