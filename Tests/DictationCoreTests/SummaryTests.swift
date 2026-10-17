@@ -49,6 +49,20 @@ struct SummarizeTests {
         #expect(abs(summary.wer - 5.0 / 27.0) < 1e-9)
     }
 
+    @Test func falseInsertionsAreSummedOnlyWhenAVocabularyIsGiven() throws {
+        let checked = try #require(summarize(handBuiltResults(), vocabulary: ["--verbose", "/lib"]).first)
+        #expect(checked.falseInsertions == 0)
+        let unchecked = try #require(summarize(handBuiltResults()).first)
+        #expect(unchecked.falseInsertions == nil)
+
+        var results = handBuiltResults()
+        let run = results.runs[0]
+        results = RunResults(startedAt: results.startedAt, hardware: results.hardware, prompts: results.prompts, runs: [
+            EngineRun(variant: run.variant, load: run.load, clips: run.clips + [clip(3, "hello /compact there /compact", latency: 0.1, peak: 1)]),
+        ])
+        #expect(try #require(summarize(results, vocabulary: ["/compact"]).first).falseInsertions == 2)
+    }
+
     @Test func perCategoryRates() throws {
         let summary = try #require(summarize(handBuiltResults()).first)
         #expect(summary.perCategory[.path] == CategorySummary(clipCount: 2, lenientTokenRate: 0.5, strictTokenRate: 0.5, wer: 1.0 / 14.0))

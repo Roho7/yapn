@@ -132,6 +132,29 @@ public func wordErrorRate(reference: String, hypothesis: String) -> Double {
     wordEdits(reference: reference, hypothesis: hypothesis).rate
 }
 
+/// One clip through one stage: the stage turned `input` into `output`, both scored against `reference`.
+public struct StageStep: Sendable, Hashable {
+    public let reference: String
+    public let input: String
+    public let output: String
+
+    public init(reference: String, input: String, output: String) {
+        self.reference = reference
+        self.input = input
+        self.output = output
+    }
+
+    /// The stage over-edited: its output has more word edits against the reference than its input had.
+    public var madeWorse: Bool {
+        wordEdits(reference: reference, hypothesis: output).errors > wordEdits(reference: reference, hypothesis: input).errors
+    }
+}
+
+/// How many clips a stage made worse. A cleanup pass should only remove errors, so this should be 0.
+public func worseCount(_ steps: [StageStep]) -> Int {
+    steps.filter(\.madeWorse).count
+}
+
 public enum TokenMatch: String, Sendable, Hashable, Codable, CaseIterable {
     case lenient
     case strict
@@ -163,6 +186,8 @@ public struct ClipScore: Sendable, Hashable, Codable {
     public let category: PromptCategory
     public let words: WordEdits
     public let tokens: [TokenScore]
+    /// Vocabulary terms written in the transcript but not in the reference. See `falseInsertions`.
+    public let falseInsertions: [String]
 
     public func hitCount(_ mode: TokenMatch) -> Int {
         tokens.filter { $0.isHit(mode) }.count
@@ -173,7 +198,7 @@ public struct ClipScore: Sendable, Hashable, Codable {
     }
 }
 
-public func score(prompt: Prompt, transcript: String) -> ClipScore {
+public func score(prompt: Prompt, transcript: String, vocabulary: [String] = []) -> ClipScore {
     ClipScore(
         promptID: prompt.id,
         category: prompt.category,
@@ -183,6 +208,35 @@ public func score(prompt: Prompt, transcript: String) -> ClipScore {
                 token: token,
                 matched: Set(TokenMatch.allCases.filter { tokenHit(token, in: transcript, mode: $0) })
             )
-        }
+        },
+        falseInsertions: falseInsertions(vocabulary: vocabulary, reference: prompt.written, hypothesis: transcript)
     )
+}
+
+/// Vocabulary terms the hypothesis writes more often than the reference, one entry per extra occurrence,
+/// in vocabulary order. The token rates cannot see these: a biased engine that turns "compare" into
+/// `/compact` loses nothing on them. A term counts only where it stands alone, so `/review` inside
+/// `src/review` and `--force` inside `--force-with-lease` are not occurrences.
+public func falseInsertions(vocabulary: [String], reference: String, hypothesis: String) -> [String] {
+    var seen: Set<String> = []
+    return vocabulary.filter { seen.insert($0).inserted }.flatMap { term in
+        let extra = standaloneOccurrences(of: term, in: hypothesis) - standaloneOccurrences(of: term, in: reference)
+        return Array(repeating: term, count: max(0, extra))
+    }
+}
+
+private func standaloneOccurrences(of term: String, in text: String) -> Int {
+    guard !term.isEmpty else { return 0 }
+    func extendsName(_ c: Character?) -> Bool {
+        c.map { $0.isLetter || $0.isNumber || "-_/".contains($0) } ?? false
+    }
+    var count = 0
+    var searchStart = text.startIndex
+    while let range = text.range(of: term, range: searchStart..<text.endIndex) {
+        let before = range.lowerBound > text.startIndex ? text[text.index(before: range.lowerBound)] : nil
+        let after = range.upperBound < text.endIndex ? text[range.upperBound] : nil
+        if !extendsName(before), !extendsName(after) { count += 1 }
+        searchStart = range.upperBound
+    }
+    return count
 }

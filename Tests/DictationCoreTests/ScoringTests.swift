@@ -132,3 +132,50 @@ struct ScoreTests {
         #expect(clip.words.rate == 0)
     }
 }
+
+struct FalseInsertionTests {
+    private let vocabulary = ["/compact", "/review", "--force", "/grill-me"]
+
+    @Test func countsATermTheReferenceDoesNotHave() {
+        let inserted = falseInsertions(vocabulary: vocabulary, reference: "compare tsconfig.json with package.json", hypothesis: "/compact tsconfig.json with package.json")
+        #expect(inserted == ["/compact"])
+    }
+
+    @Test func aTermTheReferenceAlsoHasIsNotFalse() {
+        #expect(falseInsertions(vocabulary: vocabulary, reference: "run /compact now", hypothesis: "Run /compact now.") == [])
+    }
+
+    @Test func countsEachExtraOccurrence() {
+        #expect(falseInsertions(vocabulary: vocabulary, reference: "run /review", hypothesis: "/review then /review") == ["/review"])
+    }
+
+    @Test func aTermInsideALongerNameDoesNotCount() {
+        let inserted = falseInsertions(vocabulary: vocabulary, reference: "push", hypothesis: "push --force-with-lease to src/review")
+        #expect(inserted == [])
+    }
+
+    @Test func clipScoreCarriesItsInsertions() {
+        let prompt = Prompt(id: 17, category: .path, written: "compare tsconfig.json with package.json", tokens: ["tsconfig.json", "package.json"])
+        let clip = score(prompt: prompt, transcript: "/compact tsconfig.json with /grill-me", vocabulary: vocabulary)
+        #expect(clip.falseInsertions == ["/compact", "/grill-me"])
+    }
+}
+
+struct WorseCountTests {
+    @Test func countsOnlyClipsTheStageLeftWithMoreWordEdits() {
+        let steps = [
+            StageStep(reference: "meet Tuesday", input: "meet Monday no wait Tuesday", output: "meet Tuesday"),
+            StageStep(reference: "run the tests", input: "run the tests", output: "run tests"),
+            StageStep(reference: "open the file", input: "open a file", output: "open file"),
+            StageStep(reference: "ship it", input: "ship it", output: "Ship it."),
+        ]
+
+        #expect(steps.map(\.madeWorse) == [false, true, false, false])
+        #expect(worseCount(steps) == 1)
+    }
+
+    @Test func swappingOneErrorForAnotherIsNotWorse() {
+        #expect(worseCount([StageStep(reference: "a b c", input: "a x c", output: "a b y")]) == 0)
+        #expect(worseCount([StageStep(reference: "a b c", input: "a x c", output: "a y z")]) == 1)
+    }
+}

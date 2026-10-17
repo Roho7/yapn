@@ -21,6 +21,8 @@ public struct EngineSummary: Codable, Sendable {
     public let loadSeconds: Double
     public let peakMemoryBytes: Int64
     public let perCategory: [PromptCategory: CategorySummary]
+    /// Total `falseInsertions` across clips; nil when no vocabulary was given to check against.
+    public let falseInsertions: Int?
 
     public init(
         variant: EngineVariant,
@@ -32,7 +34,8 @@ public struct EngineSummary: Codable, Sendable {
         warmRTFP50: Double?,
         loadSeconds: Double,
         peakMemoryBytes: Int64,
-        perCategory: [PromptCategory: CategorySummary]
+        perCategory: [PromptCategory: CategorySummary],
+        falseInsertions: Int? = nil
     ) {
         self.variant = variant
         self.lenientTokenRate = lenientTokenRate
@@ -44,15 +47,17 @@ public struct EngineSummary: Codable, Sendable {
         self.loadSeconds = loadSeconds
         self.peakMemoryBytes = peakMemoryBytes
         self.perCategory = perCategory
+        self.falseInsertions = falseInsertions
     }
 }
 
-public func summarize(_ results: RunResults) -> [EngineSummary] {
+/// `vocabulary` is what false insertions are counted against; leave it empty to skip that count.
+public func summarize(_ results: RunResults, vocabulary: [String] = []) -> [EngineSummary] {
     let promptsByID = Dictionary(results.prompts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
     return results.runs.map { run in
         let scored: [ClipScore] = run.clips.compactMap { clip in
-            promptsByID[clip.promptID].map { score(prompt: $0, transcript: clip.transcript) }
+            promptsByID[clip.promptID].map { score(prompt: $0, transcript: clip.transcript, vocabulary: vocabulary) }
         }
         let warm = run.clips.filter { !$0.isCold }
         let latencies = warm.map(\.latencySeconds)
@@ -72,7 +77,8 @@ public func summarize(_ results: RunResults) -> [EngineSummary] {
             perCategory: Dictionary(grouping: scored, by: \.category).mapValues { group in
                 let summary = aggregate(group)
                 return CategorySummary(clipCount: group.count, lenientTokenRate: summary.lenient, strictTokenRate: summary.strict, wer: summary.wer)
-            }
+            },
+            falseInsertions: vocabulary.isEmpty ? nil : scored.reduce(0) { $0 + $1.falseInsertions.count }
         )
     }
 }
@@ -106,7 +112,7 @@ private func aggregate(_ scores: [ClipScore]) -> (lenient: Double?, strict: Doub
 }
 
 /// Linear interpolation between closest ranks.
-func percentile(_ values: [Double], _ fraction: Double) -> Double? {
+public func percentile(_ values: [Double], _ fraction: Double) -> Double? {
     guard !values.isEmpty else { return nil }
     let sorted = values.sorted()
     let position = fraction * Double(sorted.count - 1)
