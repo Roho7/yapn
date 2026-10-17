@@ -1,0 +1,34 @@
+# Heavily hesitant dictation and fluent controls for the LLM cleanup pass.
+# Same format as repairs.txt: spoken ||| expected, under a "# category:" header.
+# Build the clips with `scripts/make-repair-clips.sh data/hesitations.txt data/hesitation-clips`.
+# The expected text only deletes: repeats, restarts and crutch words go, every other word stays in order.
+# None of these sentences is a prompt example, so the score measures the shapes, not the prompt.
+# A control has the same text on both sides: cleanup must leave it alone.
+
+# category: prose
+so, um, I was thinking, I was thinking we could, you know, get pizza tonight ||| I was thinking we could get pizza tonight
+can you, uh, can you pick up the kids after, like, after practice? ||| Can you pick up the kids after practice?
+the thing is, the thing is that I basically never got the email ||| The thing is that I never got the email
+we should, um, we should probably, you know, book the hotel before, before the prices go up ||| We should probably book the hotel before the prices go up
+well, so, the, the oven is, the oven is making that, uh, that weird noise again ||| The oven is making that weird noise again
+she wants, she needs the report by Friday ||| She needs the report by Friday
+I just, I just want to, like, sleep for a week ||| I just want to sleep for a week
+
+# category: claude-prompt
+so, um, the build is, the build is failing because, like, the lockfile is out of date ||| The build is failing because the lockfile is out of date
+can you, can you basically check why the, why the login page is, uh, is so slow? ||| Can you check why the login page is so slow?
+I want to, I want to refactor the, you know, the payment service so it's sort of easier to test ||| I want to refactor the payment service so it's easier to test
+okay so, um, add a retry to the, to the upload function and, uh, log the error ||| Add a retry to the upload function and log the error
+the problem, the problem is that the cache, the cache never gets cleared on logout ||| The problem is that the cache never gets cleared on logout
+I was going to, I was going to say we could, um, just mock the API for now ||| I was going to say we could just mock the API for now
+so like, what's the, what's the difference between a queue and a, and a stream here? ||| What's the difference between a queue and a stream here?
+we need, we need to, kind of, rethink how we store the, the session tokens ||| We need to rethink how we store the session tokens
+we could try, we could use a feature flag for this ||| We could use a feature flag for this
+
+# Controls, 17 to 21.
+# category: prose
+I like the new dashboard, it looks like the old one but faster. ||| I like the new dashboard, it looks like the old one but faster.
+What kind of tests do we have for the billing module? ||| What kind of tests do we have for the billing module?
+Move the standup to Friday and tell the team. ||| Move the standup to Friday and tell the team.
+The parser is fine, so let's focus on the lexer. ||| The parser is fine, so let's focus on the lexer.
+You know the drill, run the linter before you push. ||| You know the drill, run the linter before you push.

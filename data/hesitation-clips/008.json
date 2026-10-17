@@ -1,0 +1,6 @@
+{
+  "category": "claude-prompt",
+  "id": 8,
+  "tokens": [],
+  "written": "The build is failing because the lockfile is out of date"
+}

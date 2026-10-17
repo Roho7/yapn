@@ -1,0 +1,6 @@
+{
+  "category": "claude-prompt",
+  "id": 12,
+  "tokens": [],
+  "written": "The problem is that the cache never gets cleared on logout"
+}

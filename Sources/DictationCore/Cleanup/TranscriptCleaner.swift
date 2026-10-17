@@ -1,5 +1,5 @@
 /// A second pass over the formatted transcript for what rules cannot do: self-corrections
-/// ("Monday, no wait, Tuesday") and lists spoken without markers.
+/// ("Monday, no wait, Tuesday"), hesitant restarts ("we should, we should, you know, add"), and lists spoken without markers.
 public protocol TranscriptCleaner: Sendable {
     func clean(_ text: String) async throws -> String
     /// Gets ready for the next `clean`. The on-device model's warm state fades after 5 to 10 s idle and takes
@@ -12,7 +12,7 @@ extension TranscriptCleaner {
 }
 
 public enum CleanupOutcome: Sendable, Equatable {
-    /// No correction cue, restart or list shape, so the cleaner was not asked.
+    /// No correction cue, restart, hesitation or list shape, so the cleaner was not asked.
     case skipped
     /// The cleaner's text, which passed `reviewCleanup`.
     case accepted(String)
@@ -40,7 +40,7 @@ public struct CleanupResult: Sendable, Equatable {
 }
 
 /// Runs `cleaner` on the rule output and keeps its answer only if `reviewCleanup` accepts it.
-/// Text with no correction cue, restart signal or list shape skips the cleaner, unless `always` is set.
+/// Text with no correction cue, restart signal, hesitation or list shape skips the cleaner, unless `always` is set.
 /// It never throws: every failure falls back to `formatted`.
 public func cleanup(_ formatted: String, with cleaner: any TranscriptCleaner, always: Bool = false) async -> CleanupResult {
     guard always || mayNeedCleanup(formatted) else { return CleanupResult(input: formatted, outcome: .skipped, seconds: 0) }
@@ -58,33 +58,36 @@ public func cleanup(_ formatted: String, with cleaner: any TranscriptCleaner, al
     return CleanupResult(input: formatted, outcome: outcome, seconds: seconds)
 }
 
-/// The cleaner can only help a correction, a restart, or an unmarked list. A list needs separators: two commas,
-/// or a comma and an "and" ("milk, eggs and bread"). Text the rules already laid out on lines is left alone.
+/// The cleaner can only help a correction, a restart, heavy hesitation, or an unmarked list. Heavy means two or more
+/// crutches or comma-split repeats ("so, like, the, the build"): one "so" or "you know" is how people talk.
+/// A list needs separators: two commas, or a comma and an "and" ("milk, eggs and bread").
+/// Text the rules already laid out on lines is left alone.
 /// Every check is a string check, so a transcript that needs nothing never waits for the model.
 func mayNeedCleanup(_ text: String) -> Bool {
-    if hasCorrectionCue(text) || hasRestartSignal(text) { return true }
+    if hasCorrectionCue(text) || hasRestartSignal(text) || hesitationMarks(text) >= 2 { return true }
     guard !text.contains("\n") else { return false }
     let commas = text.filter { $0 == "," }.count
     return commas >= 2 || (commas == 1 && text.contains(/\band\b/.ignoresCase()))
 }
 
-/// A restart the rules cannot repair without risking real prose. Three shapes:
-/// a word the rules kept said twice ("that that", "is is"), a two-word phrase said twice ("I think I think"),
+/// A restart the rules cannot repair without risking real prose. Two shapes:
+/// a phrase of one to four words the rules kept said twice ("that that", "I think I think", "I was going to I was going to"),
 /// and a short phrase abandoned and begun again ("I want to, I need to").
 /// The last is also "what it doesn't do is that", the speaker starting "what X is" and swerving to "that".
 /// It also fires on real prose ("what I need is that you review it"), costing one wasted call, never a wrong edit.
 func hasRestartSignal(_ text: String) -> Bool {
     let words = lex(text)
     let key = { (word: Word) in word.text.lowercased() }
-    func repeatable(_ word: Word) -> Bool { isPlainWord(word.text) && !repeatExemptWords.contains(key(word)) }
-
-    for (i, word) in words.enumerated() where repeatable(word) && word.trailing.isEmpty && i + 1 < words.count {
-        let next = words[i + 1]
-        if key(word) == key(next) { return true }
-        if i + 3 < words.count, repeatable(next), next.trailing.isEmpty,
-           [key(word), key(next)] == [key(words[i + 2]), key(words[i + 3])] { return true }
+    func bareRepeatable(_ word: Word) -> Bool {
+        word.trailing.isEmpty && isPlainWord(word.text) && !repeatExemptWords.contains(key(word))
     }
-    return hasCommaRestart(words) || text.contains(pseudoCleftSwerve)
+    let saidTwice = words.indices.contains { i in
+        (1...4).contains { size in
+            i + 2 * size <= words.count && words[i..<i + size].allSatisfy(bareRepeatable)
+                && words[i..<i + size].map(key) == words[i + size..<i + 2 * size].map(key)
+        }
+    }
+    return saidTwice || hasCommaRestart(words) || text.contains(pseudoCleftSwerve)
 }
 
 private var pseudoCleftSwerve: Regex<Substring> { /\bwhat(?:\s+[\w'\u{2019}]+){1,5}?\s+(?:is|was)\s+that\b/.ignoresCase() }

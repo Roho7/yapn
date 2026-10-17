@@ -1,19 +1,21 @@
 #!/bin/sh
-# Synthesises data/repairs.txt into data/repair-clips/: NNN.wav (16 kHz mono, macOS `say`) and
+# Synthesises a `spoken ||| expected` file into clips: NNN.wav (16 kHz mono, macOS `say`) and
 # NNN.json (the Prompt that `bench run --clips` reads, `written` being the expected text).
-# Rerun after editing repairs.txt; the directory is rebuilt from scratch.
+# Usage: scripts/make-repair-clips.sh [data/repairs.txt [data/repair-clips]]
+# Rerun after editing the text file; the output directory is rebuilt from scratch.
 set -eu
 cd "$(dirname "$0")/.."
-OUT=data/repair-clips
+SOURCE=${1:-data/repairs.txt}
+OUT=${2:-data/repair-clips}
 rm -rf "$OUT"
 mkdir -p "$OUT"
-python3 -I - "$OUT" <<'EOF'
+python3 -I - "$SOURCE" "$OUT" <<'PY'
 import json, subprocess, sys
 
-out = sys.argv[1]
+source, out = sys.argv[1], sys.argv[2]
 category = None
 clip = 0
-for number, line in enumerate(open("data/repairs.txt", encoding="utf-8"), 1):
+for number, line in enumerate(open(source, encoding="utf-8"), 1):
     line = line.strip()
     if not line:
         continue
@@ -23,11 +25,11 @@ for number, line in enumerate(open("data/repairs.txt", encoding="utf-8"), 1):
             category = body[len("category:"):].strip()
         continue
     if category is None or "|||" not in line:
-        sys.exit(f"repairs.txt:{number}: expected 'spoken ||| expected' under a '# category:' header")
+        sys.exit(f"{source}:{number}: expected 'spoken ||| expected' under a '# category:' header")
     spoken, expected = (part.strip() for part in line.split("|||", 1))
     segments = expected.replace("\\n", "\n").split("`")
     if len(segments) % 2 == 0:
-        sys.exit(f"repairs.txt:{number}: unbalanced backticks")
+        sys.exit(f"{source}:{number}: unbalanced backticks")
     clip += 1
     stem = f"{out}/{clip:03d}"
     subprocess.run(["say", "-o", f"{stem}.wav", "--data-format=LEI16@16000", spoken], check=True)
@@ -36,4 +38,4 @@ for number, line in enumerate(open("data/repairs.txt", encoding="utf-8"), 1):
         json.dump(prompt, f, indent=2, sort_keys=True)
         f.write("\n")
     print(f"{clip:03d} {spoken}")
-EOF
+PY

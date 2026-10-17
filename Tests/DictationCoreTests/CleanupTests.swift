@@ -86,6 +86,30 @@ struct RestartGateTests {
         #expect(!mayNeedCleanup(text))
     }
 
+    @Test(arguments: [
+        "So like the build is kind of broken",
+        "The problem. The problem is that the cache. The cache never clears",
+        "I was going to I was going to say we could mock it",
+    ])
+    func heavyHesitationGoesToTheCleaner(_ text: String) {
+        #expect(mayNeedCleanup(text))
+    }
+
+    @Test(arguments: [
+        "You know the drill, run the linter before you push.",
+        "I like the new dashboard and it looks like the old one",
+        "What kind of tests do we have for billing?",
+        "Okay, let's ship it",
+    ])
+    func oneCrutchOrAMeaningfulOneSkipsTheCleaner(_ text: String) {
+        #expect(!mayNeedCleanup(text))
+    }
+
+    @Test func heavyHesitationIsCleaned() async {
+        let result = await cleanup("So like the build is kind of broken", with: FixedCleaner(output: "The build is broken"))
+        #expect(result.outcome == .accepted("The build is broken"))
+    }
+
     @Test func restartedTextReachesTheCleaner() async {
         let result = await cleanup("I know that that is true.", with: FixedCleaner(output: "I know that is true."))
         #expect(result.outcome == .rejected(output: "I know that is true.", .deletedWords(["that"])))
@@ -149,5 +173,52 @@ struct CleanupReviewTests {
 
     @Test func emptyOutputIsRejected() {
         #expect(reviewCleanup(input: "meet Monday, no wait, Tuesday", output: "  ") == .empty)
+    }
+}
+
+struct HesitationReviewTests {
+    @Test func crutchWordsMayGo() {
+        #expect(reviewCleanup(input: "so, you know, the build is basically broken", output: "the build is broken") == nil)
+        #expect(reviewCleanup(input: "Okay so, add a retry to the upload function.", output: "Add a retry to the upload function.") == nil)
+        #expect(reviewCleanup(input: "Can you, oh, check the logs?", output: "Can you check the logs?") == nil)
+    }
+
+    @Test func repeatsMayGo() {
+        #expect(reviewCleanup(input: "We should, we should add a test for the parser.", output: "We should add a test for the parser.") == nil)
+        #expect(reviewCleanup(input: "pick up the kids after, like, after practice", output: "pick up the kids after practice") == nil)
+        #expect(reviewCleanup(input: "let me, let me, let me check the logs", output: "let me check the logs") == nil)
+        #expect(reviewCleanup(input: "the thing is is that it never loads", output: "the thing is that it never loads") == nil)
+        #expect(reviewCleanup(input: "run /grill-me, run /grill-me on the parser", output: "run /grill-me on the parser") == nil)
+    }
+
+    @Test func restartedClausesMayGo() {
+        #expect(reviewCleanup(input: "she wants, she needs the report by Friday", output: "she needs the report by Friday") == nil)
+        #expect(reviewCleanup(input: "I want to, I need to refactor the parser", output: "I need to refactor the parser") == nil)
+    }
+
+    @Test func doublesThatCanBeEnglishOrEmphasisStay() {
+        #expect(reviewCleanup(input: "They had had enough.", output: "They had enough.") == .deletedWords(["had"]))
+        #expect(reviewCleanup(input: "What it is is a cache miss.", output: "What it is a cache miss.") == .deletedWords(["is"]))
+        #expect(reviewCleanup(input: "That is very very good", output: "That is very good") == .deletedWords(["very"]))
+    }
+
+    @Test func crutchWordsDoingGrammaticalWorkStay() {
+        #expect(reviewCleanup(input: "We like the new parser.", output: "We the new parser.") == .deletedWords(["like"]))
+        #expect(reviewCleanup(input: "What kind of tests do we have?", output: "What tests do we have?") == .deletedWords(["kind", "of"]))
+        #expect(reviewCleanup(input: "Do you know where the logs go?", output: "Do where the logs go?") == .deletedWords(["you", "know"]))
+        #expect(reviewCleanup(input: "I think so too", output: "I think too") == .deletedWords(["so"]))
+    }
+
+    @Test func clausesThatAreNotRestartsStay() {
+        #expect(reviewCleanup(input: "check the parser, the lexer and the tests", output: "check the lexer and the tests")
+            == .deletedWords(["the", "parser"]))
+        #expect(reviewCleanup(input: "The build is red, the tests pass.", output: "The tests pass.")
+            == .deletedWords(["the", "build", "is", "red"]))
+    }
+
+    @Test func hesitationCleanupKeepsHalfTheWordsAndTheQuestion() {
+        #expect(reviewCleanup(input: "basically, you know, like, it, it works", output: "it works") == .tooShort(input: 7, output: 2))
+        #expect(reviewCleanup(input: "Can you, can you check the logs?", output: "Can you check the logs.") == .droppedQuestionMark)
+        #expect(reviewCleanup(input: "so, like, the build is broken", output: "the build is totally broken") == .addedWords(["totally"]))
     }
 }

@@ -11,9 +11,9 @@ public enum CleanupRejection: Sendable, Equatable, CustomStringConvertible {
     case droppedQuestionMark
     /// Words the input did not have: it rephrased or answered.
     case addedWords([String])
-    /// A run of input words the output left out that is neither a filler nor part of a correction.
+    /// A run of input words the output left out that is not a crutch, a repeat, a restart, or part of a correction.
     case deletedWords([String])
-    /// Fewer words survived than any correction explains.
+    /// Fewer words survived than any correction or hesitation explains.
     case tooShort(input: Int, output: Int)
     /// The same words with only case or punctuation changed: not an edit the cleaner is for.
     case cosmeticOnly
@@ -26,7 +26,7 @@ public enum CleanupRejection: Sendable, Equatable, CustomStringConvertible {
         case .changedToken(let token): "wrote \(token), which the input does not have"
         case .droppedQuestionMark: "dropped a question mark"
         case .addedWords(let words): "added words: \(words.joined(separator: " "))"
-        case .deletedWords(let words): "deleted words outside a correction: \(words.joined(separator: " "))"
+        case .deletedWords(let words): "deleted words that are not a hesitation or a correction: \(words.joined(separator: " "))"
         case .tooShort(let input, let output): "kept \(output) of \(input) words"
         case .cosmeticOnly: "changed only case or punctuation"
         }
@@ -34,10 +34,12 @@ public enum CleanupRejection: Sendable, Equatable, CustomStringConvertible {
 }
 
 /// Accepts a cleaner's output only if it stays inside the edits the cleaner is allowed to make:
-/// delete fillers, lay out a list (dropping its "and"), and, after a correction cue, delete the cue with
+/// lay out a list (dropping its "and"), remove hesitation, and, after a correction cue, delete the cue with
 /// the words it replaces. Every code token the rules wrote must come through exactly, and a question stays one.
-/// The output is aligned word by word against the input. Without a cue it may add nothing and delete only
-/// fillers; with one, each deleted run must hold a cue, and at most two joining words may appear.
+/// The output is aligned word by word against the input, and each run of deleted words must be crutches
+/// ("um", "you know", "kind of"), a repeat of the words beside it, a short clause the next one restarts, or,
+/// after a cue, hold the cue. Without a cue nothing may be added and at least half the words stay;
+/// with one, at most two joining words may appear and a quarter of the words stay.
 public func reviewCleanup(input: String, output: String) -> CleanupRejection? {
     if output.allSatisfy(\.isWhitespace) { return input.allSatisfy(\.isWhitespace) ? nil : .empty }
 
@@ -49,14 +51,16 @@ public func reviewCleanup(input: String, output: String) -> CleanupRejection? {
     }
     if output.filter({ $0 == "?" }).count < input.filter({ $0 == "?" }).count { return .droppedQuestionMark }
 
-    let inputWords = contentWords(input), outputWords = contentWords(output)
-    let (deletedRuns, inserted) = align(inputWords, outputWords)
+    let inputWords = clauseWords(input), outputWords = clauseWords(output)
+    let (deletedRuns, inserted) = align(inputWords.map(\.text), outputWords.map(\.text))
     if inserted.count > (corrected ? 2 : 0) { return .addedWords(inserted) }
     let madeList = output.split(separator: "\n").contains { $0.hasPrefix("- ") }
-    if let run = deletedRuns.first(where: { !isDeletable($0, corrected: corrected, madeList: madeList) }) {
-        return .deletedWords(run)
+    if let run = deletedRuns.first(where: { !isDeletable($0, of: inputWords, corrected: corrected, madeList: madeList) }) {
+        return .deletedWords(inputWords[run].map(\.text))
     }
-    if outputWords.count * 4 < inputWords.count { return .tooShort(input: inputWords.count, output: outputWords.count) }
+    if outputWords.count * (corrected ? 4 : 2) < inputWords.count {
+        return .tooShort(input: inputWords.count, output: outputWords.count)
+    }
     if deletedRuns.isEmpty, inserted.isEmpty, !madeList, output != input { return .cosmeticOnly }
     return nil
 }
@@ -76,14 +80,12 @@ private var cueInRun: Regex<Substring> {
     /\b(?:actually|no|wait|scratch|i mean|sorry|make that|or rather|correction|instead)\b/
 }
 
-private let fillers: Set<String> = ["um", "umm", "uh", "er", "erm", "ah", "hmm"]
-
-/// A deleted run is a filler ("um", "you know"), a list's "and", or, after a cue, a correction that holds the cue.
-private func isDeletable(_ run: [String], corrected: Bool, madeList: Bool) -> Bool {
-    let text = run.joined(separator: " ")
-    if corrected, text.contains(cueInRun) { return true }
-    let rest = text.replacing("you know", with: " ").split(separator: " ").map(String.init)
-    return rest.allSatisfy { fillers.contains($0) || (madeList && ["and", "or"].contains($0)) }
+/// A deleted run is, after a cue, a correction that holds the cue. Otherwise, once its crutches and a list's "and"
+/// are taken out, what is left must be nothing, a repeat of the words beside it, or a clause the next one restarts.
+private func isDeletable(_ run: Range<Int>, of words: [SpokenWord], corrected: Bool, madeList: Bool) -> Bool {
+    if corrected, words[run].map(\.text).joined(separator: " ").contains(cueInRun) { return true }
+    let rest = strippingCrutches(run, of: words, madeList: madeList).rest
+    return rest.isEmpty || isRepeat(rest, at: run, in: words) || isRestart(rest, at: run, in: words)
 }
 
 /// Tokens a cleaner must copy exactly: backticked spans, and words holding a code symbol
@@ -107,16 +109,10 @@ private func isCodeToken(_ word: String) -> Bool {
         || word.contains(/[a-z][A-Z]/)
 }
 
-/// The spoken words of the text with Markdown list markers removed, so laying out a list adds no words.
-private func contentWords(_ text: String) -> [String] {
-    text.split(separator: "\n").flatMap { line in
-        spokenWords(String(line.replacing(/^\s*(?:[-*•]|\d+[.)])\s+/, with: "")))
-    }
-}
-
-/// A longest-common-subsequence alignment: the runs of consecutive input words the output left out,
-/// and the output words that match nothing in the input.
-private func align(_ input: [String], _ output: [String]) -> (deletedRuns: [[String]], inserted: [String]) {
+/// A longest-common-subsequence alignment: the runs of consecutive input words the output left out, as index ranges
+/// into the input, and the output words that match nothing in the input. Where either of two equal words could be
+/// the one dropped, the earlier one is, so "she wants, she needs" drops "she wants" and not "wants she".
+private func align(_ input: [String], _ output: [String]) -> (deletedRuns: [Range<Int>], inserted: [String]) {
     let n = input.count, m = output.count
     var common = Array(repeating: Array(repeating: 0, count: m + 1), count: n + 1)
     for i in stride(from: n - 1, through: 0, by: -1) {
@@ -124,20 +120,20 @@ private func align(_ input: [String], _ output: [String]) -> (deletedRuns: [[Str
             common[i][j] = input[i] == output[j] ? common[i + 1][j + 1] + 1 : max(common[i + 1][j], common[i][j + 1])
         }
     }
-    var runs: [[String]] = [], run: [String] = [], inserted: [String] = []
+    var runs: [Range<Int>] = [], runStart: Int?, inserted: [String] = []
     var i = 0, j = 0
     while i < n || j < m {
-        if i < n, j < m, input[i] == output[j], common[i][j] == common[i + 1][j + 1] + 1 {
-            if !run.isEmpty { runs.append(run); run = [] }
-            i += 1; j += 1
-        } else if i < n, j == m || common[i + 1][j] >= common[i][j + 1] {
-            run.append(input[i])
+        if i < n, common[i + 1][j] == common[i][j] {
+            runStart = runStart ?? i
             i += 1
+        } else if i < n, j < m, input[i] == output[j] {
+            if let start = runStart { runs.append(start..<i); runStart = nil }
+            i += 1; j += 1
         } else {
             inserted.append(output[j])
             j += 1
         }
     }
-    if !run.isEmpty { runs.append(run) }
+    if let start = runStart { runs.append(start..<n) }
     return (runs, inserted)
 }

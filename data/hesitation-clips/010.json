@@ -1,0 +1,6 @@
+{
+  "category": "claude-prompt",
+  "id": 10,
+  "tokens": [],
+  "written": "I want to refactor the payment service so it's easier to test"
+}
