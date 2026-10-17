@@ -1,0 +1,8 @@
+{
+  "category": "claude-prompt",
+  "id": 13,
+  "tokens": [
+    "/code-review"
+  ],
+  "written": "use /code-review on the parser"
+}

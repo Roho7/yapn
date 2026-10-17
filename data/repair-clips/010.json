@@ -1,0 +1,6 @@
+{
+  "category": "claude-prompt",
+  "id": 10,
+  "tokens": [],
+  "written": "write a function that removes duplicates and returns the count"
+}

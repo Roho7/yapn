@@ -1,0 +1,6 @@
+{
+  "category": "claude-prompt",
+  "id": 16,
+  "tokens": [],
+  "written": "the review should check:\n- naming\n- error handling\n- test coverage\n- docs"
+}
