@@ -32,23 +32,27 @@ struct Run: AsyncParsableCommand {
 
         let summaries = summarize(results)
         print("\n\(results.hardware), \(found.count) clips\n")
-        print(summaryTable(summaries, winner: pickWinner(summaries)))
+        let winner = pickWinner(summaries)
+        print(summaryTable(summaries.map { ($0.variant.id + ($0.variant == winner ? " *" : ""), $0) }))
+        print(winner.map { "* winner: \($0.id)" } ?? "no engine qualifies (warm RTF p50 * 5.0 must be under 0.5)")
         print("\nresults: \(file.path)")
     }
 }
 
-func summaryTable(_ summaries: [EngineSummary], winner: EngineVariant?) -> String {
+/// One row per labelled summary. The false-insertions column shows "-" when the summary was not checked for them.
+func summaryTable(_ rows: [(label: String, summary: EngineSummary)]) -> String {
     func percent(_ value: Double) -> String { String(format: "%.1f", value * 100) }
     func millis(_ value: Double?) -> String { value.map { String(format: "%.0f", $0 * 1000) } ?? "-" }
 
-    let header = ["variant", "lenient %", "strict %", "WER %", "p50 ms", "p95 ms", "RTF", "load s", "peak MB"]
-    var rows = [header]
-    for s in summaries {
-        rows.append([
-            s.variant.id + (s.variant == winner ? " *" : ""),
+    let header = ["variant", "lenient %", "strict %", "WER %", "false ins", "p50 ms", "p95 ms", "RTF", "load s", "peak MB"]
+    var cells = [header]
+    for (label, s) in rows {
+        cells.append([
+            label,
             percent(s.lenientTokenRate),
             percent(s.strictTokenRate),
             percent(s.wer),
+            s.falseInsertions.map(String.init) ?? "-",
             millis(s.warmLatencyP50),
             millis(s.warmLatencyP95),
             s.warmRTFP50.map { String(format: "%.3f", $0) } ?? "-",
@@ -56,13 +60,11 @@ func summaryTable(_ summaries: [EngineSummary], winner: EngineVariant?) -> Strin
             String(format: "%.0f", Double(s.peakMemoryBytes) / 1_048_576),
         ])
     }
-    let widths = header.indices.map { column in rows.map { $0[column].count }.max() ?? 0 }
-    let lines = rows.map { row in
+    let widths = header.indices.map { column in cells.map { $0[column].count }.max() ?? 0 }
+    return cells.map { row in
         row.enumerated().map { column, cell in
             let pad = String(repeating: " ", count: widths[column] - cell.count)
             return column == 0 ? cell + pad : pad + cell
         }.joined(separator: "  ")
-    }
-    let footer = winner.map { "* winner: \($0.id)" } ?? "no engine qualifies (warm RTF p50 * 5.0 must be under 0.5)"
-    return (lines + [footer]).joined(separator: "\n")
+    }.joined(separator: "\n")
 }

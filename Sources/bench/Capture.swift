@@ -67,12 +67,16 @@ struct CaptureFlow {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("bench-playback-\(UUID().uuidString).wav")
         defer { try? FileManager.default.removeItem(at: url) }
         try writeWAV(take.samples, to: url)
-        let afplay = Process()
-        afplay.executableURL = URL(fileURLWithPath: "/usr/bin/afplay")
-        afplay.arguments = [url.path]
-        try afplay.run()
-        afplay.waitUntilExit()
+        try afplay(url)
     }
+}
+
+func afplay(_ url: URL) throws {
+    let afplay = Process()
+    afplay.executableURL = URL(fileURLWithPath: "/usr/bin/afplay")
+    afplay.arguments = [url.path]
+    try afplay.run()
+    afplay.waitUntilExit()
 }
 
 func requireMicrophone() async throws {
