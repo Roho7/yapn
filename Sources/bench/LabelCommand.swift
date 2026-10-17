@@ -65,7 +65,7 @@ struct LabelFlow {
             switch phase {
             case .choosing(let reference):
                 print("reference: \(indented(reference))")
-                print("Enter accept, e edit, r edit from raw, p play, s skip, d delete, q quit")
+                print("Enter accept, t type the correct text, e edit in $EDITOR, r edit from raw, p play, s skip, d delete, q quit")
                 switch readInput() {
                 case "" where reference.isEmpty:
                     print("the reference is empty; e to write one, s to skip")
@@ -76,6 +76,10 @@ struct LabelFlow {
                     } catch {
                         print("\(error); e to fix it")
                     }
+                case "t":
+                    print("type the correct text, then Enter (empty keeps the current one):")
+                    let typed = readLine()?.trimmingCharacters(in: .whitespaces) ?? ""
+                    phase = .choosing(reference: typed.isEmpty ? reference : typed)
                 case "e": phase = .choosing(reference: try edit(reference) ?? reference)
                 case "r": phase = .choosing(reference: try edit(item.entry.raw) ?? reference)
                 case "p": try afplay(item.audioURL)
