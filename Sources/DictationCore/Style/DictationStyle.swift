@@ -4,11 +4,21 @@ public struct DictationTarget: Sendable, Equatable, Codable {
     public let appName: String?
     /// The focused window's title through the Accessibility API: a browser's tab title, a terminal's title.
     public let windowTitle: String?
+    /// The focused element's accessibility label and DOM classes, joined: how an editor's integrated
+    /// terminal ("Terminal 1, zsh", class `xterm-helper-textarea`) is told apart from its text editor.
+    public let focusedElement: String?
 
-    public init(bundleID: String?, appName: String?, windowTitle: String?) {
+    public init(bundleID: String?, appName: String?, windowTitle: String?, focusedElement: String? = nil) {
         self.bundleID = bundleID
         self.appName = appName
         self.windowTitle = windowTitle
+        self.focusedElement = focusedElement
+    }
+
+    /// VS Code-family editors render their terminal with xterm.js, whose input is a textarea labelled "Terminal N, <process>".
+    var isEditorTerminalFocused: Bool {
+        guard let focus = focusedElement?.lowercased() else { return false }
+        return focus.contains("xterm") || focus.hasPrefix("terminal")
     }
 }
 
@@ -46,20 +56,34 @@ struct StyleRule {
     let style: DictationStyle
     let apps: Set<String>?
     var titleContains: [String]? = nil
+    /// Set for editor rules: the focused element must be the integrated terminal, and if `focusContains`
+    /// is set its label must also name one of these processes.
+    var needsEditorTerminal = false
+    var focusContains: [String]? = nil
 
     func matches(_ target: DictationTarget) -> Bool {
         if let apps, !apps.contains(target.bundleID ?? "") { return false }
+        if needsEditorTerminal, !target.isEditorTerminalFocused { return false }
+        if let focusContains {
+            let focus = (target.focusedElement ?? "").lowercased()
+            guard focusContains.contains(where: focus.contains) else { return false }
+        }
         guard let titleContains else { return true }
         let title = (target.windowTitle ?? "").lowercased()
         return titleContains.contains { title.contains($0) }
     }
 }
 
-/// Terminal emulators. Editors with an integrated terminal (VS Code, Cursor) cannot be told apart from the
-/// editor by bundle id, so they stay `default`.
+/// Terminal emulators.
 let terminalApps: Set<String> = [
     "com.apple.Terminal", "com.googlecode.iterm2", "dev.warp.Warp-Stable", "com.mitchellh.ghostty",
     "net.kovidgoyal.kitty", "org.alacritty", "com.github.wez.wezterm", "co.zeit.hyper",
+]
+
+/// VS Code-family editors. Their integrated terminal is recognised from the focused element, not the bundle id.
+public let editorApps: Set<String> = [
+    "com.microsoft.VSCode", "com.microsoft.VSCodeInsiders", "com.todesktop.230313mzl4w4u92",
+    "com.exafunction.windsurf", "com.vscodium",
 ]
 
 let browserApps: Set<String> = [
@@ -75,6 +99,8 @@ let styleRules: [StyleRule] = [
     StyleRule(name: "Claude Code in a terminal", style: .claudeCode, apps: terminalApps, titleContains: claudeCodeTitleMarks),
     StyleRule(name: "Claude app", style: .claudeCode, apps: ["com.anthropic.claudefordesktop"]),
     StyleRule(name: "terminal", style: .shell, apps: terminalApps),
+    StyleRule(name: "Claude Code in an editor terminal", style: .claudeCode, apps: editorApps, needsEditorTerminal: true, focusContains: ["claude"]),
+    StyleRule(name: "editor terminal", style: .shell, apps: editorApps, needsEditorTerminal: true),
     StyleRule(name: "LinkedIn in a browser", style: .formal, apps: browserApps, titleContains: ["linkedin"]),
     StyleRule(name: "Mail", style: .formal, apps: ["com.apple.mail"]),
     StyleRule(name: "any other app", style: .default, apps: nil),

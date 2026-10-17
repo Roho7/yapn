@@ -11,8 +11,48 @@ func captureTarget() -> DictationTarget {
     return DictationTarget(
         bundleID: app?.bundleIdentifier,
         appName: app?.localizedName,
-        windowTitle: app.flatMap { focusedWindowTitle(of: $0.processIdentifier) }
+        windowTitle: app.flatMap { focusedWindowTitle(of: $0.processIdentifier) },
+        focusedElement: app.flatMap { focusedElementLabel(of: $0) }
     )
+}
+
+/// Electron editors only build their accessibility tree once an assistive app asks with `AXManualAccessibility`.
+/// Asking takes a moment to apply, so it is done when an editor activates, ahead of the first hotkey press.
+@MainActor
+func enableEditorAccessibilityOnActivation() {
+    NSWorkspace.shared.runningApplications.forEach(enableAccessibilityIfEditor)
+    NSWorkspace.shared.notificationCenter.addObserver(
+        forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+    ) { note in
+        if let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication {
+            enableAccessibilityIfEditor(app)
+        }
+    }
+}
+
+private func enableAccessibilityIfEditor(_ app: NSRunningApplication) {
+    guard editorApps.contains(app.bundleIdentifier ?? "") else { return }
+    AXUIElementSetAttributeValue(AXUIElementCreateApplication(app.processIdentifier), "AXManualAccessibility" as CFString, kCFBooleanTrue)
+}
+
+/// Only editors are asked: elsewhere the bundle id and window title are enough.
+private func focusedElementLabel(of app: NSRunningApplication) -> String? {
+    guard editorApps.contains(app.bundleIdentifier ?? "") else { return nil }
+    enableAccessibilityIfEditor(app)
+    let element = AXUIElementCreateApplication(app.processIdentifier)
+    AXUIElementSetMessagingTimeout(element, axTimeout)
+    var focused: CFTypeRef?
+    guard AXUIElementCopyAttributeValue(element, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
+          let focused, CFGetTypeID(focused) == AXUIElementGetTypeID() else { return nil }
+    let focusedElement = focused as! AXUIElement
+    var parts: [String] = []
+    for attribute in ["AXDescription", "AXTitle", "AXDOMClassList"] {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(focusedElement, attribute as CFString, &value) == .success, let value else { continue }
+        if let text = value as? String, !text.isEmpty { parts.append(text) }
+        if let list = value as? [String] { parts.append(list.joined(separator: " ")) }
+    }
+    return parts.isEmpty ? nil : parts.joined(separator: " | ")
 }
 
 private let axTimeout: Float = 0.1

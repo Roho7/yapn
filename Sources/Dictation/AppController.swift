@@ -59,6 +59,7 @@ final class AppController {
         refreshCleanup()
         menu.render()
         if listenForHotkey {
+            enableEditorAccessibilityOnActivation()
             hotkey.install()
             if !accessibilityGranted { pollForAccessibility() }
         }
@@ -92,9 +93,10 @@ final class AppController {
             let (target, captureSeconds) = measure { captureTarget() }
             let styled = resolve(target)
             self.styled = styled
-            log(String(format: "style: %@ for %@ (%@, title %@; rule: %@; read in %.1f ms)",
+            log(String(format: "style: %@ for %@ (%@, title %@, focus %@; rule: %@; read in %.1f ms)",
                        styled.decision.style.rawValue, target.appName ?? "?", target.bundleID ?? "no bundle id",
-                       target.windowTitle.map { "\"\($0)\"" } ?? "none", styled.decision.rule, captureSeconds * 1000))
+                       target.windowTitle.map { "\"\($0)\"" } ?? "none", target.focusedElement.map { "\"\($0)\"" } ?? "none",
+                       styled.decision.rule, captureSeconds * 1000))
             // The model's warm state fades within seconds, so it is rebuilt while the user speaks.
             refreshCleanup()
             let instructions = cleanupInstructions(for: styled.decision.style)

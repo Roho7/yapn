@@ -1,8 +1,8 @@
 import Testing
 @testable import DictationCore
 
-private func target(_ bundleID: String?, _ title: String? = nil) -> DictationTarget {
-    DictationTarget(bundleID: bundleID, appName: nil, windowTitle: title)
+private func target(_ bundleID: String?, _ title: String? = nil, focus: String? = nil) -> DictationTarget {
+    DictationTarget(bundleID: bundleID, appName: nil, windowTitle: title, focusedElement: focus)
 }
 
 struct StyleResolverTests {
@@ -20,6 +20,11 @@ struct StyleResolverTests {
         (target("com.apple.Safari", "GitHub"), .default),
         (target("com.todesktop.230313mzl4w4u92", "claude — dictation-app"), .default),
         (target("com.microsoft.VSCode", "zsh"), .default),
+        (target("com.todesktop.230313mzl4w4u92", "app.ts", focus: "Terminal 1, zsh | xterm-helper-textarea"), .shell),
+        (target("com.microsoft.VSCode", "app.ts", focus: "xterm-helper-textarea"), .shell),
+        (target("com.todesktop.230313mzl4w4u92", "app.ts", focus: "Terminal 2, claude | xterm-helper-textarea"), .claudeCode),
+        (target("com.todesktop.230313mzl4w4u92", "app.ts", focus: "Editor content | monaco-mouse-cursor-text"), .default),
+        (target("com.apple.Safari", "Docs", focus: "Terminal 1, zsh | xterm-helper-textarea"), .default),
         (target(nil, nil), .default),
     ])
     func tableResolvesTargets(_ target: DictationTarget, _ style: DictationStyle) {
