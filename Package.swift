@@ -7,6 +7,7 @@ let package = Package(
     products: [
         .library(name: "DictationCore", targets: ["DictationCore"]),
         .executable(name: "bench", targets: ["bench"]),
+        .executable(name: "Dictation", targets: ["Dictation"]),
     ],
     dependencies: [
         .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.17.0"),
@@ -29,6 +30,10 @@ let package = Package(
                 "DictationCore",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]
+        ),
+        .executableTarget(
+            name: "Dictation",
+            dependencies: ["DictationCore"]
         ),
     ]
 )

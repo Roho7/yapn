@@ -3,3 +3,5 @@ results/
 data/live/
 .DS_Store
 .swiftpm/
+build/
+data/real-clips/
