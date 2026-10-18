@@ -39,9 +39,9 @@ No cloud. Your voice never leaves your Mac.
 
 ## Features
 
-### It listens like a person
+### Did I Stutter?
 
-Nobody talks in perfect sentences. Yapn doesn't expect you to.
+"Uh, um" consume extra tokens, get rid.
 
 > "Uh, the the build is slow."
 
@@ -49,7 +49,7 @@ Nobody talks in perfect sentences. Yapn doesn't expect you to.
 The build is slow
 ```
 
-### It speaks developer
+### Speaking code
 
 Say the symbols. Get the code.
 
@@ -67,7 +67,7 @@ open src/lib/auth.ts
 
 Skill names are matched against the skills you actually have installed. Yapn never invents one.
 
-### It knows where you are
+### Read the room
 
 The same sentence means different things in different places. Yapn knows the difference.
 
@@ -103,7 +103,7 @@ This was the best talk I've seen this year.
 
 **In Claude Code**, it writes prompts, not commands: your words, tidied, with `/skills` spelled right.
 
-### Say a list. Get a list.
+### Bullets don't hurt like words
 
 > "I need three things. First, the API, second, the docs, and third, the tests."
 
@@ -122,7 +122,9 @@ Shopping list:
 - Eggs
 ```
 
-### Change your mind. It keeps up.
+### ADHD proof
+
+Change your mind mid-sentence? It happens. 
 
 *Needs Apple Intelligence. [See below.](#make-it-smarter-with-apple-intelligence)*
 
@@ -138,7 +140,7 @@ I need four things for my grocery list.
 Let's meet Tuesday.
 ```
 
-### Tasteful and Minimal
+### Notch-yo-guy
 
 Yapn lives in your notch. Grows out when you're speaking to it, disappears once you're done, with satisfying animations. 
 
